@@ -1,0 +1,9 @@
+#!/bin/sh
+# Removal stops the node's services; an upgrade leaves them running for postinst to restart.
+set -e
+case "$1" in
+    remove|deconfigure)
+        systemctl stop dns-ha-manager dns-ha-agent dns-sync-worker pulse-server dns-agent 2>/dev/null || true
+        systemctl disable dns-ha-manager dns-ha-agent dns-sync-worker pulse-server dns-agent 2>/dev/null || true ;;
+esac
+exit 0

@@ -1,0 +1,27 @@
+/* Amber — an amber terminal: black background, warm phosphor glow, monospace font and scan lines.
+   Matrix's sibling, just not green: amber is easier on the eyes in a long session. */
+:root{
+  --bg:        #0b0700;
+  --bg-2:      #120c02;
+  --panel:     #171004;
+  --card:      #171004;
+  --card-2:    #211705;
+  --border:    #3d2a08;
+  --border-2:  #5c400d;
+  --text:      #ffb84d;
+  --text-dim:  #cc8f30;
+  --text-mute: #8f631f;
+  --accent:    #ffcc66;
+  --accent-dim:#6b4a10;
+  --accent-fg: #140c00;
+  --ok:        #b8d24a;
+  --warn:      #ffd98a;
+  --danger:    #ff7a5c;
+  --tone-info: #e0b45a;
+  --tone-alt:  #d69a4a;
+  --tone-rev:  #c98a3a;
+  --font-ui:   ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  --bg-pattern: repeating-linear-gradient(180deg,
+                  rgba(255,184,77,.03) 0px, rgba(255,184,77,.03) 1px,
+                  transparent 1px, transparent 3px);
+}

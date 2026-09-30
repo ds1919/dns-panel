@@ -1,0 +1,21 @@
+[Unit]
+Description=DNS Panel sync worker: zone retries, policy reconcile, import probe, catalog monitoring
+Documentation=file:///var/www/vhost/dns-panel/docs/INSTALL/reference/05-dns-agent.md
+After=network.target mariadb.service dns-agent.service pdns.service
+Wants=dns-agent.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+# www-data: the passes (libexec/sync-task.pl) use the dns-agent socket and both DBs with the panel's credentials.
+User=www-data
+Group=www-data
+# The wake socket directory /run/dns-panel/sync comes from tmpfiles (etc/tmpfiles/dns-panel.conf).
+ExecStart=/opt/dns-panel/bin/dns-sync-worker
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

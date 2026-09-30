@@ -1,0 +1,12 @@
+Package: dns-panel-watcher
+Version: @VERSION@
+Architecture: amd64
+Maintainer: Sergey Denisov <4402989@gmail.com>
+Section: net
+Priority: optional
+Homepage: https://github.com/ds1919/dns-panel
+Depends: iproute2
+Description: DNS Panel watcher: points a pair's service address at the ACTIVE node
+ For a DNS Panel pair without a router that does it (Cisco IP SLA and the like): watches the nodes' readiness
+ probe and runs the configured commands (a route, NAT) towards the node where it is open.
+ Configure /opt/dns-panel/etc/dns-watcher.toml from dns-watcher.example.toml, then start dns-watcher.

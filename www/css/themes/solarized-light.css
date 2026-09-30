@@ -1,0 +1,26 @@
+/* Solarized Light (Ethan Schoonover). Variables only. */
+:root{
+  --bg:        #fdf6e3;
+  --bg-2:      #eee8d5;
+  --panel:     #eee8d5;
+  --card:      #fdf6e3;
+  --card-2:    #eee8d5;
+  --border:    #ded8c5;
+  --border-2:  #c8c2ae;
+  --text:      #073642;
+  --text-dim:  #586e75;
+  --text-mute: #93a1a1;
+  --accent:    #2aa198;
+  --accent-dim:#7fc7c1;
+  --accent-fg: #fdf6e3;
+  --ok:        #6a7d00;
+  --warn:      #96700a;
+  --danger:    #dc322f;
+  /* Tag hues from the Solarized palette, but the dark tones: light ones are unreadable on cream. */
+  --tone-info: #1f5b8f;
+  --tone-alt:  #6c3f9e;
+  --tone-rev:  #8a6414;
+  --tone-soft: 9%;
+  --tone-edge: 32%;
+  --tag-ink:   38%;   /* less of the tag's own colour in text on a light background, or the tag fades */
+}

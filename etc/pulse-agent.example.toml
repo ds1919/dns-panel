@@ -1,0 +1,23 @@
+# pulse-agent — four lines on purpose. Targets, intervals and thresholds arrive over the stream from the panel:
+# a second truth about checks in a file would one day silently diverge from what a human sees.
+#
+# NO PER-AGENT SECRET HERE: the file is identical on all machines and can go into an image or config management.
+# The agent generates its own key on first start and keeps it in StateDirectory (agent.key); the server only
+# knows its hash.
+#
+# Steps: install the file, start the agent, find a code like 7F3A-91C2 in its log and approve the request in
+# the panel (NS Pulse → Waiting for approval). Name and location are assigned there too; the agent learns its
+# name from the server at handshake.
+
+server      = "10.0.0.10:7902"
+enroll_key  = "…"   # site-wide shared key; the panel shows the ready file: NS Pulse → Agent config
+# Server certificate fingerprint. Empty = pin on first connect (like ssh) and require the same afterwards.
+# The panel shows it next to the key, in the same ready-made file.
+fingerprint = ""
+log_level   = "info"   # debug | info | warn
+
+# Reconnect backoff. The server can't send it: we are exactly not connected to it. Defaults shown;
+# a normal install doesn't need this section.
+#[reconnect]
+#min = "1s"
+#max = "30s"

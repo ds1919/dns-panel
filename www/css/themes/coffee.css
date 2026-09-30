@@ -1,0 +1,26 @@
+/* Coffee — warm light: latte background, espresso text, caramel accent.
+   Variables only, like the other themes. Tag hues use the darker shades: on a light background they fade otherwise. */
+:root{
+  --bg:        #f3ece4;
+  --bg-2:      #fbf7f2;
+  --panel:     #fbf7f2;
+  --card:      #fbf7f2;
+  --card-2:    #ebe2d7;
+  --border:    #ded2c4;
+  --border-2:  #c7b6a3;
+  --text:      #3b2f26;
+  --text-dim:  #6b5849;
+  --text-mute: #9c8878;
+  --accent:    #8a5a2b;
+  --accent-dim:#c9a882;
+  --accent-fg: #fbf7f2;
+  --ok:        #4f7a3a;
+  --warn:      #a8761a;
+  --danger:    #b3402f;
+  --tone-info: #2f5b9c;
+  --tone-alt:  #7a4a8c;
+  --tone-rev:  #8a5a20;
+  --tone-soft: 9%;
+  --tone-edge: 30%;
+  --tag-ink:   38%;
+}

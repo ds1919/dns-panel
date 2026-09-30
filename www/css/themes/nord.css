@@ -1,0 +1,22 @@
+/* Nord (Arctic Ice Studio). Variables only. */
+:root{
+  --bg:        #2e3440;
+  --bg-2:      #3b4252;
+  --panel:     #3b4252;
+  --card:      #3b4252;
+  --card-2:    #434c5e;
+  --border:    #434c5e;
+  --border-2:  #4c566a;
+  --text:      #eceff4;
+  --text-dim:  #d8dee9;
+  --text-mute: #8b95a7;
+  --accent:    #88c0d0;
+  --accent-dim:#5e81ac;
+  --accent-fg: #2e3440;
+  --ok:        #a3be8c;
+  --warn:      #ebcb8b;
+  --danger:    #bf616a;
+  --tone-info: #81a1c1;
+  --tone-alt:  #b48ead;
+  --tone-rev:  #d08770;
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=DNS Panel watcher — directs the pair service address to the node with an open readiness probe
+Documentation=file:/opt/dns-panel/docs/INSTALL/reference/07-dns-watcher.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/opt/dns-panel/bin/dns-watcher -config /opt/dns-panel/etc/dns-watcher.toml
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

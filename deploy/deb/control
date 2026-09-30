@@ -1,0 +1,17 @@
+Package: dns-panel
+Version: @VERSION@
+Architecture: amd64
+Maintainer: Sergey Denisov <4402989@gmail.com>
+Section: net
+Priority: optional
+Homepage: https://github.com/ds1919/dns-panel
+Depends: perl, libcgi-pm-perl, libdbi-perl, libdbd-mysql-perl, libjson-perl, libwww-perl, libcrypt-urandom-perl,
+ libcrypt-argon2-perl, libcryptx-perl, libauth-googleauth-perl, libimager-qrcode-perl, apache2, libapache2-mod-fcgid,
+ libfcgi-perl, bind9-dnsutils, curl, iproute2, mariadb-server, mariadb-client,
+ pdns-server (>= 5.1), pdns-server (<< 5.2), pdns-backend-mysql (>= 5.1)
+Conflicts: pdns-backend-bind
+Description: web panel for PowerDNS as the hidden primary of an internal DNS
+ Zones and records, distribution to secondaries (catalog zones, AXFR, TSIG), DNSSEC, migration from BIND,
+ dynamic DNS, an active/standby pair, NS Pulse, users and permissions with an audit log, HTTP API and MCP.
+ Installs a standalone node into /opt/dns-panel; a pair is built later in the panel.
+ PowerDNS 5.1 comes from repo.powerdns.com: add it first with powerdns-repo.sh from the release.

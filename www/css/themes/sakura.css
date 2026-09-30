@@ -1,0 +1,27 @@
+/* Sakura — light pastel: warm pink background, plum ink, petals in the background.
+   Variables only, like every theme. Tag hues are dark: on a light background they fade otherwise. */
+:root{
+  --bg:        #fdf2f4;
+  --bg-2:      #ffffff;
+  --panel:     #ffffff;
+  --card:      #ffffff;
+  --card-2:    #fbe6ea;
+  --border:    #f3d6dd;
+  --border-2:  #e0b3bf;
+  --text:      #40323a;
+  --text-dim:  #6d5a63;
+  --text-mute: #a08d95;
+  --accent:    #c05a7d;
+  --accent-dim:#e2a8bc;
+  --accent-fg: #ffffff;
+  --ok:        #4e8b5a;
+  --warn:      #b07d1a;
+  --danger:    #c2384a;
+  --tone-info: #3f62a8;
+  --tone-alt:  #7b479c;
+  --tone-rev:  #9a6420;
+  --tone-soft: 9%;
+  --tone-edge: 30%;
+  --tag-ink:   38%;
+  --bg-pattern: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='520' fill='%23000' fill-opacity='0.05'><ellipse cx='88.2' cy='93.7' rx='15.6' ry='10.2' transform='rotate(11.5 88.2 93.7)' /><ellipse cx='72.1' cy='108.5' rx='15.6' ry='10.2' transform='rotate(83.5 72.1 108.5)' /><ellipse cx='53.1' cy='97.7' rx='15.6' ry='10.2' transform='rotate(155.5 53.1 97.7)' /><ellipse cx='57.4' cy='76.3' rx='15.6' ry='10.2' transform='rotate(227.5 57.4 76.3)' /><ellipse cx='79.1' cy='73.8' rx='15.6' ry='10.2' transform='rotate(299.5 79.1 73.8)' /><circle cx='70.0' cy='90.0' r='4.8' /><ellipse cx='255.1' cy='53.9' rx='9.4' ry='6.1' transform='rotate(63.0 255.1 53.9)' /><ellipse cx='242.1' cy='51.9' rx='9.4' ry='6.1' transform='rotate(135.0 242.1 51.9)' /><ellipse cx='240.1' cy='38.9' rx='9.4' ry='6.1' transform='rotate(207.0 240.1 38.9)' /><ellipse cx='251.8' cy='33.0' rx='9.4' ry='6.1' transform='rotate(279.0 251.8 33.0)' /><ellipse cx='261.0' cy='42.3' rx='9.4' ry='6.1' transform='rotate(351.0 261.0 42.3)' /><circle cx='250.0' cy='44.0' r='2.9' /><ellipse cx='402.4' cy='183.9' rx='17.7' ry='11.6' transform='rotate(34.4 402.4 183.9)' /><ellipse cx='379.1' cy='192.2' rx='17.7' ry='11.6' transform='rotate(106.4 379.1 192.2)' /><ellipse cx='363.9' cy='172.6' rx='17.7' ry='11.6' transform='rotate(178.4 363.9 172.6)' /><ellipse cx='377.9' cy='152.1' rx='17.7' ry='11.6' transform='rotate(250.4 377.9 152.1)' /><ellipse cx='401.7' cy='159.1' rx='17.7' ry='11.6' transform='rotate(322.4 401.7 159.1)' /><circle cx='385.0' cy='172.0' r='5.4' /><ellipse cx='134.6' cy='293.8' rx='10.9' ry='7.1' transform='rotate(114.6 134.6 293.8)' /><ellipse cx='127.1' cy='280.5' rx='10.9' ry='7.1' transform='rotate(186.6 127.1 280.5)' /><ellipse cx='137.4' cy='269.2' rx='10.9' ry='7.1' transform='rotate(258.6 137.4 269.2)' /><ellipse cx='151.3' cy='275.6' rx='10.9' ry='7.1' transform='rotate(330.6 151.3 275.6)' /><ellipse cx='149.6' cy='290.8' rx='10.9' ry='7.1' transform='rotate(402.6 149.6 290.8)' /><circle cx='140.0' cy='282.0' r='3.4' /><ellipse cx='481.6' cy='344.1' rx='13.0' ry='8.5' transform='rotate(51.6 481.6 344.1)' /><ellipse cx='463.4' cy='344.9' rx='13.0' ry='8.5' transform='rotate(123.6 463.4 344.9)' /><ellipse cx='457.1' cy='327.8' rx='13.0' ry='8.5' transform='rotate(195.6 457.1 327.8)' /><ellipse cx='471.3' cy='316.5' rx='13.0' ry='8.5' transform='rotate(267.6 471.3 316.5)' /><ellipse cx='486.5' cy='326.6' rx='13.0' ry='8.5' transform='rotate(339.6 486.5 326.6)' /><circle cx='472.0' cy='332.0' r='4.0' /><ellipse cx='298.7' cy='433.8' rx='8.3' ry='5.4' transform='rotate(97.4 298.7 433.8)' /><ellipse cx='290.2' cy='425.8' rx='8.3' ry='5.4' transform='rotate(169.4 290.2 425.8)' /><ellipse cx='295.3' cy='415.3' rx='8.3' ry='5.4' transform='rotate(241.4 295.3 415.3)' /><ellipse cx='306.8' cy='416.8' rx='8.3' ry='5.4' transform='rotate(313.4 306.8 416.8)' /><ellipse cx='309.0' cy='428.3' rx='8.3' ry='5.4' transform='rotate(385.4 309.0 428.3)' /><circle cx='300.0' cy='424.0' r='2.6' /><ellipse cx='78.0' cy='468.8' rx='14.6' ry='9.5' transform='rotate(22.9 78.0 468.8)' /><ellipse cx='60.5' cy='479.3' rx='14.6' ry='9.5' transform='rotate(94.9 60.5 479.3)' /><ellipse cx='45.1' cy='465.9' rx='14.6' ry='9.5' transform='rotate(166.9 45.1 465.9)' /><ellipse cx='53.0' cy='447.1' rx='14.6' ry='9.5' transform='rotate(238.9 53.0 447.1)' /><ellipse cx='73.4' cy='448.9' rx='14.6' ry='9.5' transform='rotate(310.9 73.4 448.9)' /><circle cx='62.0' cy='462.0' r='4.5' /><ellipse cx='515.1' cy='98.3' rx='7.8' ry='5.1' transform='rotate(137.5 515.1 98.3)' /><ellipse cx='513.9' cy='87.4' rx='7.8' ry='5.1' transform='rotate(209.5 513.9 87.4)' /><ellipse cx='523.9' cy='82.9' rx='7.8' ry='5.1' transform='rotate(281.5 523.9 82.9)' /><ellipse cx='531.2' cy='90.9' rx='7.8' ry='5.1' transform='rotate(353.5 531.2 90.9)' /><ellipse cx='525.9' cy='100.5' rx='7.8' ry='5.1' transform='rotate(425.5 525.9 100.5)' /><circle cx='522.0' cy='92.0' r='2.4' /></svg>");
+}

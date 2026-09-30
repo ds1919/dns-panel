@@ -1,0 +1,35 @@
+# dns-ha-agent (Go) — the node's privileged executor. Listens ONLY on a local unix socket.
+#
+# Root is unavoidable (@@global.read_only, PowerDNS role, publication address), so everything else is taken
+# away: no network listener, and the socket group decides who may command it.
+[Unit]
+Description=DNS Panel HA agent (Go, privileged executor)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/opt/dns-panel/bin/dns-ha-agent -config /opt/dns-panel/etc/ha-agent.toml -socket-group dns-ha
+Restart=always
+RestartSec=2
+
+# Agent state (accepted epoch + journal of executed operations) is durable, root-only, in the product tree:
+# /opt/dns-panel/var/agent-state.json. Socket and lock live in /run/dns-panel (tmpfiles.d, root:dns-ha).
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+# AF_UNIX: its own socket. AF_INET/AF_INET6: needed by children (reseed pulls a dump from the peer via mysqldump).
+# AF_NETLINK: used by `ip addr`; without it the agent can neither add the service address nor check it.
+# AF_PACKET: gratuitous ARP on address move; without it neighbours keep sending to the old owner's MAC until
+# their ARP cache expires. The agent itself listens on no network socket.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK AF_PACKET
+RestrictNamespaces=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,43 @@
+# MariaDB for DNS Panel. Installed on EVERY node, including a single one.
+#
+# A single install is configured the way a pair will need it (no replication yet, just ready for it).
+# Otherwise pairing two running servers would start with editing my.cnf and restarting MariaDB under live DNS.
+#
+# TEMPLATE. The working file is created by `deploy/install.sh`, which fills in a RANDOM
+# server_id. Two identically installed nodes with server_id=1 cannot replicate, and server_id is not dynamic
+# in MariaDB, so fixing it at pairing time would mean editing the config and restarting the live DB.
+#
+# Symlink: /etc/mysql/mariadb.conf.d/60-dns-panel.cnf → /opt/dns-panel/etc/mariadb/dns-panel.cnf
+
+[mysqld]
+# Unique node id for replication (1..4294967295). Filled in at install time.
+server_id                = __SERVER_ID__
+
+# Listen on the network. Debian defaults to 127.0.0.1, which rules out a pair: the replica connects to the
+# source over TCP. Not dynamic, so changing it at pairing time would mean restarting the live DB.
+#
+# This doesn't open the node: local users are bound to 127.0.0.1 and replication accounts are created for the
+# peer's SPECIFIC address (see §14.6). Firewalling 3306 to the management network is still a good idea.
+bind-address             = 0.0.0.0
+
+# Binlog and GTID: required for a pair, and enabling them later means a DB restart.
+#
+# The binlog lives IN THE DATA DIRECTORY, not /var/log/mysql: Debian/Ubuntu don't create that directory by
+# default and MariaDB then fails to start ("File '/var/log/mysql/mysql-bin.index' not found"). A bare name
+# means the data directory, whichever it is: /var/lib/mysql on Ubuntu 24.04, /var/lib/mariadb on 26.04.
+log_bin                  = mariadb-bin
+binlog_format            = ROW
+log_slave_updates        = ON
+gtid_strict_mode         = ON
+expire_logs_days         = 7
+
+# read_only and skip_slave_start are deliberately NOT here.
+#
+# They are the fail-safe of the HA ROLE, not of the installation: a single node must stay writable after a
+# reboot. Pair creation adds them via a separate ha-failsafe.cnf, with no MariaDB restart (the agent sets the
+# runtime value according to the role).
+
+# The HA loop's local DB must neither enter the binlog nor arrive from the peer: otherwise the control plane
+# would sit inside the replication it manages.
+binlog_ignore_db         = dns_ha
+replicate_ignore_db      = dns_ha

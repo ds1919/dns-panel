@@ -1,0 +1,20 @@
+[Unit]
+Description=DNS Panel privileged agent (PowerDNS control mediator)
+Documentation=file:///var/www/vhost/dns-panel/docs/INSTALL/reference/05-dns-agent.md
+After=pdns.service
+Wants=pdns.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+# Runs as pdns to reach /run/pdns/pdns.controlsocket.
+User=pdns
+# No www-data membership: the socket directory /run/dns-panel/pdns is setgid www-data (etc/tmpfiles/dns-panel.conf).
+ExecStart=/opt/dns-panel/bin/dns-agent
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

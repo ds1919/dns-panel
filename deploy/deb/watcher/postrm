@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+case "$1" in
+    remove|purge) rm -f /etc/systemd/system/dns-watcher.service; systemctl daemon-reload 2>/dev/null || true ;;
+esac
+exit 0

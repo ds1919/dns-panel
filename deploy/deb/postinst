@@ -1,0 +1,7 @@
+#!/bin/sh
+# Configures the node: the same installer as a manual install, without the apt part (apt ran it already).
+set -e
+case "$1" in
+    configure) /opt/dns-panel/deploy/install.sh --package ;;
+esac
+exit 0

@@ -1,0 +1,4 @@
+/* "Follow the browser": the dark theme is main.css itself, so this only adds the light half when the system
+   theme is light. No script: the media query applies from the first frame, so the panel doesn't flash.
+   The light palette isn't duplicated; it's the same file as an explicit Light choice. */
+@import url("light.css") screen and (prefers-color-scheme: light);

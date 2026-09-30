@@ -1,0 +1,35 @@
+[Unit]
+# pulse-agent (Go) — ICMP/TCP checks from a site (docs/25-ns-pulse.md).
+Description=DNS Panel Pulse agent
+Documentation=file:/opt/dns-panel/docs/25-ns-pulse.md
+After=network-online.target
+
+[Service]
+Type=simple
+User=pulse-agent
+Group=pulse-agent
+# The config is pasted from the panel by hand; make it readable to the agent and to nobody else ('+' = as root).
+ExecStartPre=+/bin/sh -c 'chown root:pulse-agent /opt/dns-panel/etc/pulse-agent.toml && chmod 0640 /opt/dns-panel/etc/pulse-agent.toml'
+ExecStart=/opt/dns-panel/bin/pulse-agent -config /opt/dns-panel/etc/pulse-agent.toml
+Restart=always
+RestartSec=5
+
+# ICMP needs privileges; granting them here (not via sysctl on someone else's host) makes the requirement travel
+# with the agent. Without it the agent takes no ICMP jobs at all, so "can't check" never looks like "host down"
+# (docs/25 §1).
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=true
+
+# The pinned server fingerprint must survive restarts, otherwise the agent would trust anew every time.
+StateDirectory=pulse-agent
+StateDirectoryMode=0700
+
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

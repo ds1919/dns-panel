@@ -1,0 +1,25 @@
+/* Gruvbox Light (Pavel Pertsev) — warm cream, the pair to the dark one. Variables only. */
+:root{
+  --bg:        #fbf1c7;
+  --bg-2:      #f9f5d7;
+  --panel:     #f2e5bc;
+  --card:      #f9f5d7;
+  --card-2:    #ebdbb2;
+  --border:    #e0d0a8;
+  --border-2:  #c8b28c;
+  --text:      #3c3836;
+  --text-dim:  #504945;
+  --text-mute: #7c6f64;
+  --accent:    #427b58;
+  --accent-dim:#8ec07c;
+  --accent-fg: #f9f5d7;
+  --ok:        #79740e;
+  --warn:      #b57614;
+  --danger:    #9d0006;
+  --tone-info: #076678;
+  --tone-alt:  #8f3f71;
+  --tone-rev:  #af3a03;
+  --tone-soft: 10%;
+  --tone-edge: 32%;
+  --tag-ink:   36%;
+}

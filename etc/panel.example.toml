@@ -1,0 +1,57 @@
+# DNS Panel — node bootstrap config.
+#
+# ONLY what is needed to reach the database, plus properties of this node. Everything the administrator
+# manages (sync timeouts, MCP policy, session lifetime) lives in the DB `settings` table and is edited in the panel.
+#
+# No secrets here, only paths to 0600 files. A password in a config ends up in backups, diffs and clipboards;
+# and an encryption key next to the encrypted data in the same DB defeats the encryption.
+#
+# Copy to etc/panel.toml and fill in.
+
+[panel_db]
+host          = "127.0.0.1"
+name          = "dns_panel"
+user          = "dnspanel"
+password_file = "/opt/dns-panel/etc/secrets/panel-db.password"
+
+[pdns_db]
+host          = "127.0.0.1"
+name          = "pdns"
+user          = "pdns"
+password_file = "/opt/dns-panel/etc/secrets/pdns-db.password"
+
+[pdns_api]
+url      = "http://127.0.0.1:8081"
+server   = "localhost"
+key_file = "/opt/dns-panel/etc/secrets/pdns-api.key"
+
+[auth]
+# base64 of 32 random bytes: encrypts TOTP secrets in the DB. Must be identical on both nodes of a pair:
+# the secrets replicate and can't be decrypted with a different key.
+#   perl -MCrypt::URandom -MMIME::Base64 -e 'print encode_base64(Crypt::URandom::urandom(32),"")'
+master_key_file = "/opt/dns-panel/etc/secrets/auth-master.key"
+
+[agent]
+# Privileged intermediary to the PowerDNS control socket: the panel (www-data) has no access to it itself.
+socket  = "/run/dns-panel/pdns/dns-agent.sock"
+timeout = 5
+
+[pulse]
+# pulse-server control socket: the panel tells it a rule changed; otherwise an enabled rule would wait for the
+# next agent event, and a schedule-only rule may have no agents at all. If the daemon is down, the NS Pulse
+# page shows it and saving rules still works.
+#
+# DO NOT CHANGE THE PATH. Three programs know it: the panel, pulse-server and dns-ha-agentd (which sends
+# "node became active" here after promote). The first two read this setting, the third has it as a constant.
+# Move it here and the panel still works, but the promotion signal never arrives and a schedule-only rule
+# won't start after a role switch. Only change it where daemons are started by hand outside systemd.
+control_socket = "/run/dns-panel/pulse/control.sock"
+
+[ha]
+# Whether the HA loop (dns-ha-manager and dns-ha-agent) is installed on this node. Everything else about the
+# pair (who we are, the peer, whether a pair exists, the service address) is known only to dns-ha-manager;
+# a second source of that data would one day confidently answer wrong.
+#
+# The flag means "loop installed", NOT "pair created". On a single node it enables the High availability
+# section where the pair is created; writes are not restricted while there is no pair.
+enabled = false

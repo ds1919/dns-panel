@@ -1,0 +1,39 @@
+# pulse-server — accepts agents and keeps state in dns_panel. Config of THIS process on THIS node.
+# Everything else (testers, checks, rules) lives in the panel and is edited there.
+listen = "0.0.0.0:7902"
+
+# Write permission is asked from dns-ha-manager, same as the panel. deploy/install.sh turns this on: the HA
+# stack is on every node (a node without a pair is answered "writable").
+[ha]
+enabled = false
+socket  = "/run/dns-panel/ha/manager.sock"
+
+[db]
+socket        = "/run/mysqld/mysqld.sock"
+name          = "dns_panel"
+user          = "dnspanel"
+password_file = "/opt/dns-panel/etc/secrets/panel-db.password"
+
+# How records are switched. Pulse has no SQL of its own: the zone changes only via pdns_apply_rrsets (the same
+# path as humans and MCP), called by this program. It also asks dns-ha-manager for write permission: there is
+# no second HA model.
+[apply]
+command = "/opt/dns-panel/libexec/pulse-apply.pl"
+
+# Control socket: the panel tells the daemon a rule changed. Without it an enabled rule would wait for the next
+# agent event, and a schedule-only rule may have no agents at all. Must match panel.toml [pulse] control_socket.
+[control]
+socket = "/run/dns-panel/pulse/control.sock"
+# Group given to the socket and its directory. The panel connects as its own user, so 0660 needs a shared
+# group, and the daemon must be in it (SupplementaryGroups= in the unit).
+group  = "www-data"
+
+# The server's own technical timeouts; defaults shown. Rarely changed, but every number should have an owner
+# rather than live in code. Check parameters don't belong here: they live in the DB and are edited in the panel.
+#[timeouts]
+#db              = "10s"   # limit for one service write (deadline firing)
+#ha              = "3s"    # limit for a dns-ha-manager call
+#ha_verdict_ttl  = "1s"    # how long the manager's previous role answer is trusted
+#retry_min       = "1s"    # first backoff after a failed deadline write
+#retry_max       = "1m"    # backoff cap: an unreachable DB must not become a hot loop
+#apply           = "30s"   # limit for one switch: zone transaction and SOA bump

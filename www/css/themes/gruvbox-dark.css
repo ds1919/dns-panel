@@ -1,0 +1,22 @@
+/* Gruvbox Dark (Pavel Pertsev). Variables only. */
+:root{
+  --bg:        #282828;
+  --bg-2:      #1d2021;
+  --panel:     #32302f;
+  --card:      #32302f;
+  --card-2:    #3c3836;
+  --border:    #504945;
+  --border-2:  #665c54;
+  --text:      #ebdbb2;
+  --text-dim:  #bdae93;
+  --text-mute: #928374;
+  --accent:    #8ec07c;
+  --accent-dim:#427b58;
+  --accent-fg: #1d2021;
+  --ok:        #b8bb26;
+  --warn:      #fabd2f;
+  --danger:    #fb4934;
+  --tone-info: #83a598;
+  --tone-alt:  #d3869b;
+  --tone-rev:  #fe8019;
+}

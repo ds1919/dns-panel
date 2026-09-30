@@ -1,0 +1,41 @@
+[Unit]
+# dns-ha-manager (Go) — observation, decisions and operations of the HA pair (docs/23-ha-manager.md).
+Description=DNS Panel HA manager
+Documentation=file:/opt/dns-panel/docs/23-ha-manager.md
+After=network-online.target mariadb.service dns-ha-agent.service
+Wants=dns-ha-agent.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+# NOT root: the process observes and talks to the peer over the network. Privileged actions go through the
+# separate dns-ha-agent; that boundary stays.
+# The user must be in the agent's socket group and have a MariaDB account with unix_socket auth (grants on
+# dns_ha only). The dedicated `dns-ha` group means "may use HA IPC" and nothing more.
+#
+# Why NOT Group=www-data: a network daemon would get group-read on everything the panel reads, including
+# /opt/dns-panel/etc/secrets (DB passwords, TOTP encryption key). Access the other way is by membership:
+# www-data ∈ dns-ha lets the panel use both IPC sockets in /run/dns-panel, but not /opt/dns-panel/var or
+# secrets/ (group bits are zero there).
+User=dns-ha
+Group=dns-ha
+ExecStart=/opt/dns-panel/bin/dns-ha-manager -config /opt/dns-panel/etc/ha.toml
+Restart=on-failure
+RestartSec=5
+
+# /run/dns-panel is created once by tmpfiles.d (etc/tmpfiles/dns-panel.conf) as root:dns-ha: it is shared by
+# manager and agent, so its owner must not depend on restart order.
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# The durable safety store lives in the product tree, not a StateDirectory. Under ProtectSystem=strict it must be
+# allowed explicitly, or the manager silently fails to persist the epoch and its right to be ACTIVE.
+ReadWritePaths=/opt/dns-panel/var /run/dns-panel/ha
+
+[Install]
+WantedBy=multi-user.target

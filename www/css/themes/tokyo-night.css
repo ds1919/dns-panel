@@ -1,0 +1,22 @@
+/* Tokyo Night (enkia). Variables only. */
+:root{
+  --bg:        #1a1b26;
+  --bg-2:      #16161e;
+  --panel:     #1f2335;
+  --card:      #1f2335;
+  --card-2:    #292e42;
+  --border:    #2f344d;
+  --border-2:  #3b4261;
+  --text:      #c0caf5;
+  --text-dim:  #9aa5ce;
+  --text-mute: #6b7194;
+  --accent:    #7dcfff;
+  --accent-dim:#3d59a1;
+  --accent-fg: #16161e;
+  --ok:        #9ece6a;
+  --warn:      #e0af68;
+  --danger:    #f7768e;
+  --tone-info: #7aa2f7;
+  --tone-alt:  #bb9af7;
+  --tone-rev:  #ff9e64;
+}

@@ -1,0 +1,5 @@
+# dns-ha-manager — only what is needed to reach its own database. Node identity and peer are kept in the
+# local dns_ha (the node UUID is issued on first start), not in this config.
+[database]
+socket   = "/run/mysqld/mysqld.sock"
+database = "dns_ha"

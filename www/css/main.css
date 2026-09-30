@@ -1,0 +1,1972 @@
+/* ============================================================
+   DNS Panel — base styles and design system.
+   Neutral dark-grey palette + sidebar + top bar.
+   See docs/07-ui-design.md
+   ============================================================ */
+
+/* Dark palette, also the default theme. Other themes in css/themes/ override THESE variables and nothing
+   else. Components below never hard-code colours, only var(--...), or new themes can't reach them. */
+:root{
+  --bg:        #0e0e10;   /* app background */
+  --bg-2:      #141416;   /* sidebar / top bar */
+  --panel:     #161618;   /* secondary panels */
+  --card:      #1b1b1e;   /* cards / tables */
+  --card-2:    #202024;   /* hover / raised */
+  --border:    #2a2a2e;   /* thin borders */
+  --border-2:  #34343a;
+  --text:      #e6e6e6;
+  --text-dim:  #a0a0a3;
+  --text-mute: #6c6c70;
+  --accent:    #4bb3a5;   /* muted teal */
+  --accent-dim:#2f6f68;
+  --accent-fg: #0c1a18;   /* text on accent */
+  --ok:        #5cbf82;
+  --warn:      #d8a657;
+  --danger:    #e04b4b;
+  /* Tag hues. Themes change THESE, not the rules below: one rule for the whole panel. */
+  --tone-info: #7aa2f7;   /* internal */
+  --tone-alt:  #b58ee0;   /* external */
+  --tone-rev:  #c9a06a;   /* reverse   */
+  --tone-soft: 10%;       /* share of colour in the tag fill */
+  --tag-ink:   62%;       /* share of the tag's OWN colour in its text; the rest is the theme colour, so
+                             a light tag doesn't vanish on a light background and vice versa */
+  --tone-edge: 35%;       /* ...and in its border */
+  --radius:    10px;
+  --radius-sm: 8px;
+}
+
+*{box-sizing:border-box;}
+/* The hidden attribute must hide. Any component with its own display (.btn inline-flex, .modal flex)
+   otherwise wins on specificity and stays visible (the HA page once showed Edit, Cancel and Save at once). */
+[hidden]{display:none !important;}
+html,body{height:100%;margin:0;padding:0;}
+body{
+  /* System font: no external font dependency for an internal panel. A theme may swap the font (--font-ui)
+     and add a background pattern (--bg-pattern); both are variables, so themes still don't touch layout.
+     The pattern is a LAYER over the background colour and doesn't scroll, otherwise it "floats" on long
+     pages and hinders reading tables. No external files: only gradients and inline SVG. */
+  font-family:var(--font-ui,system-ui,-apple-system,Segoe UI,Roboto,sans-serif);
+  background-color:var(--bg);
+  background-image:var(--bg-pattern,none);
+  background-attachment:fixed;
+  color:var(--text);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none;}
+
+/* ---------- Controls: styled ONCE, by tag ----------
+   A plain <input>, <textarea> or <select> already looks like the panel; no class needed. Classes are only
+   for VARIANTS (size, width, behaviour). So a new screen can't end up with a white native field in the dark
+   theme, and page CSS must not restyle standard elements; it only does geometry.
+
+   Excluded types that have no text look: checkbox/radio are styled separately below, hidden isn't visible,
+   file/color/range are drawn by the platform. */
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=color]):not([type=range]),
+textarea,
+select{
+  background:var(--bg-2);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;
+  padding:.55rem .7rem;font:inherit;font-size:14px;outline:none;
+  /* box-shadow WITHOUT transition: the same shadow covers the autofill background, and fading it in would
+     show the browser highlight for 120 ms (this is why the password field flickered). */
+  transition:border-color .12s;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--accent-dim);box-shadow:0 0 0 2px rgba(75,179,165,.2);}
+/* A control INSIDE a table is one text line tall. Regular forms keep large fields (there the field is the
+   content). In a table the content is rows: the field must take exactly the space the text did, or switching
+   read → edit changes the row height and shifts columns. The negative vertical margin makes the border draw
+   OVER the row instead of growing it.
+
+   Scoped by CONTEXT, not class: every new table would have to remember a class, and would forget it.
+   Use .ctl-compact for the same size outside a table. */
+table input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=color]):not([type=range]),
+table textarea,
+table select,
+.ctl-compact{
+  padding:.1rem .4rem;font-size:12.5px;line-height:1.35;border-radius:6px;margin:-3px 0;
+}
+table .field-input{margin-bottom:0;}
+/* Select is the same component as a field, and it must not grow in a table either. */
+table .ui-select{margin:-3px 0;}
+table .ui-select-trigger{padding:.1rem .4rem;font-size:12.5px;border-radius:6px;}
+/* Icon button in a cell is INLINE: it is display:flex (a block), and next to a normal button it silently
+   wrapped to a second line, doubling the row height. */
+table .icon-btn{display:inline-flex;vertical-align:middle;}
+/* Popover dropdown in a cell is text-height too: it's a control and shares the rule. The popover itself is
+   drawn in a fixed layer, unrelated to the row. */
+table .grp-ms-trigger{padding:.1rem .4rem;font-size:12.5px;border-radius:6px;margin:-3px 0;}
+/* An invalid value stays red EVEN when focused, otherwise the focus ring hides the error.
+   The :not() chain is deliberate: without it the rule is weaker than the base one. */
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=color]):not([type=range])[aria-invalid="true"],
+input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]):not([type=color]):not([type=range])[aria-invalid="true"]:focus{border-color:var(--danger);box-shadow:0 0 0 2px rgba(224,75,75,.2);}
+/* File input. The platform draws it its own way; it was the only control left as a light system "Browse..."
+   button in the dark panel. Styled HERE by type like all others; the button inside looks like .btn-ghost. */
+input[type=file]{
+  background:var(--bg-2);color:var(--text-dim);
+  border:1px solid var(--border);border-radius:8px;
+  padding:.35rem .5rem;font:inherit;font-size:13px;outline:none;transition:border-color .12s;
+}
+input[type=file]:focus{border-color:var(--accent-dim);box-shadow:0 0 0 2px rgba(75,179,165,.2);}
+input[type=file]::file-selector-button{
+  margin-right:.6rem;padding:.3rem .7rem;font:inherit;font-size:13px;cursor:pointer;
+  background:transparent;color:var(--text);border:1px solid var(--border);border-radius:6px;
+}
+input[type=file]::file-selector-button:hover{border-color:var(--text-mute);background:var(--card-2);}
+input:disabled,textarea:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
+input[type=file]:disabled::file-selector-button{opacity:.55;cursor:not-allowed;}
+input::placeholder,textarea::placeholder{color:var(--text-mute);}
+/* AUTOFILL. The browser paints an autofilled field its own yellow over any theme. The background can't be
+   overridden directly (background on :-webkit-autofill is ignored), so it's covered by an inset shadow in
+   the theme colour; password managers keep working as before. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active{
+  -webkit-text-fill-color:var(--text);
+  -webkit-box-shadow:0 0 0 100px var(--bg-2) inset;
+  box-shadow:0 0 0 100px var(--bg-2) inset;
+  caret-color:var(--text);
+  transition:background-color 100000s ease-in-out 0s;   /* keeps the background from animating back */
+}
+/* Same trick with the standard selector, used by Firefox. A SEPARATE block on purpose: a browser that
+   doesn't know one selector drops the WHOLE list, and the rule would work nowhere. */
+input:autofill,
+input:autofill:hover,
+input:autofill:focus,
+input:autofill:active{
+  color:var(--text);
+  box-shadow:0 0 0 100px var(--bg-2) inset;
+  caret-color:var(--text);
+  filter:none;
+  transition:background-color 100000s ease-in-out 0s;
+}
+textarea{min-height:5rem;resize:vertical;}
+select{appearance:none;-webkit-appearance:none;padding-right:1.8rem;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--text-mute) 50%),
+                   linear-gradient(135deg,var(--text-mute) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+select option{background:var(--card);color:var(--text);}
+
+button{font-family:inherit;}
+/* Text selection in the theme accent, not default blue */
+::selection{background:rgba(75,179,165,.30);color:var(--text);}
+::-moz-selection{background:rgba(75,179,165,.30);color:var(--text);}
+
+/* ---------- Small set of utilities (used by pages) ---------- */
+.flex{display:flex;}
+.flex-col{flex-direction:column;}
+.flex-1{flex:1 1 0%;}
+.items-center{align-items:center;}
+.justify-center{justify-content:center;}
+.justify-between{justify-content:space-between;}
+.gap-2{gap:.5rem;} .gap-3{gap:.75rem;} .gap-4{gap:1rem;}
+.hidden{display:none;}
+.text-right{text-align:right;}
+.text-center{text-align:center;}
+.text-dim{color:var(--text-dim);}
+.text-mute{color:var(--text-mute);}
+.text-warn{color:var(--warn);}
+.mono{font-variant-numeric:tabular-nums;}
+.break-all{word-break:break-all;}
+.mt-1{margin-top:.25rem;} .mb-4{margin-bottom:1rem;} .mb-6{margin-bottom:1.5rem;}
+
+/* ============================================================
+   App shell: sidebar + main column
+   ============================================================ */
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:212px;flex-shrink:0;
+  background:var(--bg-2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:14px 10px;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;}
+.brand .logo{
+  width:26px;height:26px;border-radius:7px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dim));
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:var(--accent-fg);font-size:13px;
+}
+.brand .name{font-weight:600;font-size:15px;letter-spacing:.2px;white-space:nowrap;}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+.nav-link{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;
+  color:var(--text-dim);font-weight:500;cursor:pointer;
+  transition:background .12s,color .12s;
+}
+.nav-link .ic{width:18px;height:18px;flex-shrink:0;opacity:.85;}
+.nav-link:hover{background:var(--card-2);color:var(--text);}
+.nav-link.active{background:var(--card-2);color:var(--text);}
+.nav-link.active .ic{color:var(--accent);opacity:1;}
+.nav-spacer{flex:1;}
+.side-foot{border-top:1px solid var(--border);padding-top:10px;margin-top:8px;}
+.nav-foot{flex:0 0 auto;}
+.user-chip{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;}
+.user-chip.clickable{cursor:pointer;}
+.user-chip.clickable:hover{background:var(--card-2);}
+.avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--card-2);border:1px solid var(--border-2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;color:var(--text-dim);flex-shrink:0;
+}
+.user-chip .u-name{font-size:13px;font-weight:500;}
+.user-chip .u-role{font-size:11px;color:var(--text-mute);}
+
+/* ---------- Main column ---------- */
+.main-col{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+/* Top bar. Holds exactly one control, the global search (see docs/07-ui-design.md).
+   The field is the shared `.search`; only its width and the dropdown geometry are here. */
+.topbar{
+  height:52px;flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  background:var(--bg-2);
+  display:flex;align-items:center;gap:14px;
+  padding:0 16px;
+}
+.search.gsearch{
+  position:relative;max-width:440px;
+  background:transparent;border:0;padding:0;       /* one field, no second backing around it */
+}
+.gsearch>.ic{position:absolute;left:12px;top:50%;z-index:1;transform:translateY(-50%);pointer-events:none;}
+#gsearch{width:100%;padding-left:2.2rem;}
+/* The menu is WIDER than the field. The field stays compact (440px) so it doesn't fill the header, but
+   results need room for type, name with zone and value; at 440px even plain A records didn't fit.
+   Aligned to the field's left edge (right:auto), shrinks via max-width on narrow screens. */
+.gsearch-menu{
+  position:absolute;top:calc(100% + 6px);left:0;right:auto;z-index:60;
+  width:900px;max-width:calc(100vw - 260px);
+  max-height:60vh;overflow-y:auto;
+  background:var(--card);border:1px solid var(--border-2);border-radius:8px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px;
+}
+/* Type buttons above results: filter what's already loaded, no request, no new screen. */
+.gs-types{display:flex;flex-wrap:wrap;gap:5px;padding:4px 6px 8px;margin-bottom:2px;
+  border-bottom:1px solid var(--border);}
+.gs-types .gs-type-btn[aria-pressed="true"]{background:rgba(75,179,165,.14);color:var(--accent);
+  border-color:var(--accent-dim);}
+.gs-group{padding:7px 8px 3px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-mute);}
+/* A result row is a link (keyboard accessible), so link styling is reset. */
+a.gs-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;
+  font-size:13px;text-decoration:none;color:var(--text);}
+a.gs-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+/* A disabled record doesn't answer in DNS; it must not look live in results. */
+a.gs-row.gs-off .gs-name,a.gs-row.gs-off .gs-val{color:var(--text-mute);}
+a.gs-row:hover{background:var(--card-2);}
+/* Name and zone stacked: the zone answers "where from", but a separate column would take width from name and
+   value in a narrow menu. */
+/* The value column is FLEXIBLE, not a hard max-width:45%: SOA names are short, and with a fixed share the
+   free space on the left was unavailable, so a long SOA got cut in a half-empty row. */
+.gs-main{flex:0 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;}
+.gs-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gs-zone{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:11px;color:var(--text-mute);}
+.gs-val{flex:1 1 auto;min-width:0;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+.gs-note{padding:9px 8px;color:var(--text-mute);font-size:12px;}
+.icon-btn{
+  width:34px;height:34px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-dim);cursor:pointer;position:relative;
+  transition:background .12s,color .12s;
+  background:none;border:none;
+}
+.icon-btn:hover{background:var(--card-2);color:var(--text);}
+
+/* Content area (pages are loaded here via AJAX) */
+.content{flex:1;overflow-y:auto;padding:22px 24px;}
+
+/* ============================================================
+   Page components
+   ============================================================ */
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:16px;}
+.page-head h1{font-size:20px;font-weight:600;margin:0;}
+.page-head .sub{color:var(--text-mute);font-size:13px;margin-top:2px;}
+/* Zone header in one line: [← Zones] Name [badges] ·profile ...  Settings/Delete */
+.zone-head{margin-bottom:.5rem;}
+.zone-head-main{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;min-width:0;}
+.zone-head .zone-title{font-size:20px;font-weight:600;margin:0;}
+.zone-head .zone-meta{display:inline-flex;align-items:center;gap:.45rem;color:var(--text-dim);font-size:13px;}
+.btn-back{font-size:13px;}
+.zone-labels-row{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:0 0 18px;}
+.sec-div{border:none;border-top:1px solid var(--border);margin:1rem 0;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:8px;
+  font-weight:600;font-size:13px;cursor:pointer;
+  border:1px solid transparent;
+  /* Highlight and bevel are theme variables. Regular themes don't set them (flat button); a "metal" theme
+     sets them itself, with no layout change. */
+  background-image:var(--sheen,none);
+  box-shadow:var(--bevel,none);
+}
+.btn-primary{background-color:var(--accent);color:var(--accent-fg);}
+.btn-primary:hover{filter:brightness(1.06);}
+.btn-ghost{background-color:var(--card);border-color:var(--border);color:var(--text-dim);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border-2);}
+/* A disabled button must LOOK disabled, or people click a bright button, nothing happens, and they think the
+   panel hung. One rule for all buttons. */
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn:disabled:hover{filter:none;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat .label{color:var(--text-mute);font-size:12px;}
+.stat .value{font-size:24px;font-weight:700;margin-top:4px;}
+.stat .value small{font-size:13px;font-weight:500;color:var(--text-dim);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+
+/* Toolbar (search + filters) */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.search{
+  flex:1;max-width:320px;min-width:180px;
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:7px 11px;
+}
+.search .ic{color:var(--text-mute);flex-shrink:0;}
+.search input{background:transparent;border:none;outline:none;color:var(--text);width:100%;font-size:13px;}
+.search input::placeholder{color:var(--text-mute);}
+.filter{
+  padding:7px 11px;border:1px solid var(--border);border-radius:8px;
+  background:var(--card);color:var(--text-dim);font-size:13px;cursor:pointer;white-space:nowrap;
+}
+.filter:hover{color:var(--text);border-color:var(--border-2);}
+.filter-wrap{position:relative;display:inline-block;}
+.filter-wrap.open .filter{color:var(--text);border-color:var(--accent-dim);}
+.filter-menu{
+  position:absolute;left:0;top:calc(100% + 4px);z-index:50;min-width:150px;max-height:16rem;overflow-y:auto;
+  background:var(--card-2);border:1px solid var(--border-2);border-radius:8px;padding:.3rem;
+  box-shadow:0 10px 28px rgba(0,0,0,.5);
+}
+.filter-opt{padding:.4rem .6rem;border-radius:6px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;}
+.filter-opt:hover{background:var(--panel);}
+.filter-opt.sel{background:var(--accent-dim);}
+.filter-menu.multi .filter-opt input{margin:0 .45rem 0 0;pointer-events:none;vertical-align:-2px;}
+
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table thead th{
+  text-align:left;padding:11px 16px;
+  color:var(--text-mute);font-weight:600;font-size:12px;
+  text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:1px solid var(--border);
+}
+.data-table thead th.right{text-align:right;}
+.data-table tbody td{padding:12px 16px;border-bottom:1px solid var(--border);}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table tbody tr:hover{background:var(--card-2);}
+.data-table td.right{text-align:right;}
+.data-table th.right{text-align:right;}
+.data-table th.th-sort{cursor:pointer;user-select:none;white-space:nowrap;}
+.data-table th.th-sort:hover{color:var(--text);}
+.data-table th.th-sort.sorted{color:var(--accent);}
+.data-table td.num,.data-table th.num{text-align:right;font-variant-numeric:tabular-nums;}
+.data-table td.nowrap,.nowrap{white-space:nowrap;}
+.data-table td .field-input.sm{margin-bottom:0;width:100%;}
+
+/* Propagation page — reuses shared table/badge/link/modal components (.data-table, .dist-tabs, .badge, .link, .lc-*) */
+/* Add server: compact one-line form above the table. Inside the table it read as another server row, so it
+   stays a separate panel; controls are the same as in Edit (multi-selects). */
+.srv-tbl-add{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;margin:.2rem 0 .9rem;padding:.6rem .7rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-2);}
+.srv-tbl-add .field-input{margin-bottom:0;}
+.srv-tbl-add .sa-name{width:11rem;}
+.srv-tbl-add .sa-ip{width:11rem;}
+.srv-tbl-add .sa-desc{width:13rem;}
+.srv-tbl-add .grp-ms-trigger{padding:.42rem .6rem;}
+.srv-tbl-add .sa-notify{display:inline-flex;align-items:center;gap:.4rem;}
+.srv-tbl-add .sa-lbl{font-size:.72rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:.4px;}
+.tb-spacer{flex:1 1 auto;}
+.field-input.mt4{margin-top:4px;}
+.gedit-chks{display:flex;flex-wrap:wrap;gap:.4rem .9rem;}
+.srv-table .mini{margin-top:1px;line-height:1.2;}
+.srv-table td .field-input.sm{width:100%;}
+.srv-table td.nowrap,.srv-table td.right{white-space:nowrap;}
+/* Manage groups — master-detail split (left list / right params), reuses global .dm-* classes */
+.gm-split{display:flex;min-height:20rem;}
+.gm-side{flex:0 0 12rem;border-right:1px solid var(--border);display:flex;flex-direction:column;}
+.gm-side-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:0 .6rem .55rem 0;font-weight:600;font-size:.85rem;border-bottom:1px solid var(--border);}
+.gm-side-list{display:flex;flex-direction:column;overflow-y:auto;max-height:26rem;}
+.gm-side-row{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--border);padding:.5rem;cursor:pointer;font:inherit;color:var(--text);}
+.gm-side-row:hover{background:var(--card-2);}
+.gm-side-row.selected{background:var(--accent);color:var(--accent-fg);}
+.gm-side-name{font-weight:600;}
+.gm-side-sub{font-size:.76rem;color:var(--text-dim);margin-top:.1rem;}
+.gm-side-row.selected .gm-side-sub{color:var(--accent-fg);opacity:.85;}
+.gm-detail{flex:1;min-width:0;padding:.1rem 0 .2rem 1.1rem;}
+.gm-empty{padding:2.5rem 1rem;text-align:center;color:var(--text-mute);}
+/* Manage groups modal — 80% viewport, split fills the height */
+#prop-modal .dm-panel{width:min(80vw,1100px);height:80vh;max-width:none;max-height:none;}
+#prop-modal .dm-body{flex:1;min-height:0;overflow:auto;}
+/* Agent groups: same window and layout as server groups. Layer above the rule workspace (#pulse-overlay) and
+   below shared dialogs: the delete confirmation must appear on top of it. */
+#pulse-modal{z-index:9985;}
+#pulse-modal .dm-panel{width:min(80vw,1100px);height:80vh;max-width:none;max-height:none;}
+#pulse-modal .dm-body{flex:1;min-height:0;overflow:auto;}
+#pulse-modal .gm-side-list{flex:1;max-height:none;}
+#pulse-modal .gm-detail{overflow:auto;}
+/* Group members and its checks as tables: each row has three values, and spreading them as paragraphs read
+   like an unfinished form. */
+.gm-tbl{max-height:15rem;margin:.3rem 0 .2rem;}
+.gm-tbl td label{display:flex;align-items:center;gap:.4rem;}
+.gm-tbl tr.is-picked>td{background:color-mix(in srgb,var(--accent) 12%,transparent);}
+.gm-edit h4{margin:1rem 0 .2rem;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mute);}
+#prop-modal .gm-split{height:100%;min-height:0;}
+#prop-modal .gm-side-list{flex:1;max-height:none;}
+.gm-edit{margin:0;}
+.gm-edit .frow{margin-bottom:1rem;}
+.gm-edit .field-input{margin-bottom:0;}
+.gm-foot{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:2.2rem;flex-wrap:wrap;}
+.gm-foot.end{justify-content:flex-end;}
+.tsig-ctl{flex:1;min-width:0;display:flex;align-items:center;gap:.4rem;flex-wrap:nowrap;}
+.tsig-ctl .ts-secret-inp{flex:0 1 18rem;min-width:8rem;margin-bottom:0;}
+.tsig-ctl .icon-btn{width:auto;height:auto;border-radius:6px;padding:4px 6px;color:var(--text-dim);flex:0 0 auto;}
+.tsig-ctl .icon-btn:hover{background:var(--card-2);color:var(--text);}
+.tsig-ctl .tsig-act{margin-left:.8rem;}
+.tsig-ctl .link{flex:0 0 auto;white-space:nowrap;}
+.tsig-ctl.dimmed{opacity:.5;}
+.frow.frow-tk{align-items:flex-start;}
+.frow.frow-tk>label{padding-top:.5rem;}
+.tk-block{flex:1;min-width:0;display:flex;flex-direction:column;gap:.4rem;}
+.tk-block.dimmed{opacity:.55;}
+.tk-item{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.5rem .6rem;}
+.tk-item.active{border-color:var(--accent-dim);}
+.tk-item.editing{flex-direction:column;}
+.tk-item.editing .frow{margin-bottom:.4rem;width:100%;}
+.tk-radio{flex:0 0 auto;padding-top:.15rem;}
+.tk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:.3rem;}
+.tk-head{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;}
+.tk-secret{display:flex;align-items:center;gap:.35rem;flex-wrap:nowrap;}
+.tk-secret .ts-secret-inp{flex:0 1 15rem;min-width:8rem;margin-bottom:0;}
+.tk-secret .icon-btn{width:auto;height:auto;border-radius:6px;padding:4px 6px;color:var(--text-dim);flex:0 0 auto;}
+.tk-secret .icon-btn:hover{background:var(--card-2);color:var(--text);}
+.tk-secret .link{flex:0 0 auto;white-space:nowrap;}
+.tk-add{border:1px solid var(--accent-dim);border-radius:var(--radius-sm);padding:.6rem .7rem;}
+.tk-add .frow{margin-bottom:.5rem;}
+.tk-add .field-input{margin-bottom:0;}
+.tk-addbar{display:flex;align-items:center;gap:.8rem;}
+.ntsec-h{font-weight:600;font-size:.82rem;color:var(--text-dim);margin-bottom:.4rem;}   /* section heading in the server TSIG window */
+label.tk-item{cursor:pointer;}
+.chip-more{background:var(--card-2);color:var(--text-mute);}
+.chip-via{background:var(--card-2);color:var(--text-mute);border:1px dashed var(--border-2);}   /* catalog via group (not a direct assignment) */
+.gms-opt.gms-locked{opacity:.6;cursor:default;}
+/* searchable group multi-select (server edit); the same popover carries the AXFR and Zone NOTIFY dropdowns */
+.grp-ms{position:relative;display:inline-block;}
+.grp-ms-trigger{background:var(--card-2);border:1px solid var(--border);border-radius:6px;padding:.28rem .55rem;font:inherit;font-size:.84rem;color:var(--text);cursor:pointer;white-space:nowrap;}
+.grp-ms.open .grp-ms-trigger,.grp-ms-trigger:hover{border-color:var(--accent-dim);}
+/* The popover is position:fixed with coordinates from the trigger (set by JS): absolute inside
+   .table-wrap{overflow:hidden} was clipped by the table edge. No ancestor creates a containing block for fixed. */
+.grp-ms-pop{position:fixed;z-index:200;min-width:14rem;max-width:22rem;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.45);padding:.5rem;}
+.grp-ms-pop[hidden]{display:none;}
+.grp-ms-head{font-weight:600;font-size:.78rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:.4px;margin:0 .1rem .35rem;}
+.grp-ms-search{width:100%;margin-bottom:.4rem;}
+.grp-ms-list{max-height:14rem;overflow-y:auto;display:flex;flex-direction:column;gap:.1rem;}
+.gms-opt{display:flex;align-items:center;gap:.45rem;padding:.25rem .35rem;border-radius:5px;cursor:pointer;font-size:.86rem;}
+.gms-opt:hover{background:var(--card-2);}
+.gm-req{align-items:flex-start;}
+.zone-name{font-weight:600;}
+.rr-table td.zone-name{overflow-wrap:anywhere;}
+/* Zone name is clickable (→ Manage/View) but looks like text, not a blue link. */
+.zone-name-link{color:inherit;text-decoration:none;}
+.zone-feat{display:inline-flex;vertical-align:-2px;margin-left:.4rem;color:var(--text-dim);}
+.zone-name-link:hover{color:var(--accent);text-decoration:underline;}
+
+/* Propagation → Catalogs tab (master-detail: catalog list .plist on the left, Zones/Servers on the right) */
+.prop-cat-split{display:flex;gap:1.2rem;align-items:flex-start;margin-top:.3rem;}
+.prop-cat-split .plist{flex:0 0 20rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card-2);overflow:hidden;}
+.prop-cat-split .plist-head{padding:.55rem .8rem;}
+.cat-detail{flex:1;min-width:0;}
+.cat-empty{padding:3rem 1rem;text-align:center;color:var(--text-mute);}
+.cat-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.4rem;}
+.cat-head-main{min-width:0;}
+.cat-title{margin:0;font-size:1.15rem;display:flex;align-items:center;gap:.3rem;}
+.cat-desc{margin-top:.2rem;font-size:.86rem;}
+.cat-head-side{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.cat-head-edit{max-width:32rem;}
+.cat-head-edit .frow{margin-bottom:.9rem;}
+.cat-head-edit .field-input{margin-bottom:0;}
+.cat-head-act{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.4rem;}
+.cat-subtabs{margin:.6rem 0 .9rem;}
+.cat-tabc-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.5rem;font-weight:600;font-size:.9rem;}
+.cat-tabc-acts{display:flex;gap:.5rem;}
+/* Catalog header in one line: name · fqdn · counters · status · [apply] · [⋯] */
+.cat-head1{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;}
+.cat-head1-main{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;min-width:0;}
+.cat-head1 .cat-title{font-size:1.15rem;font-weight:650;}
+.cat-head1-meta{font-size:.85rem;color:var(--text-mute);}
+.cat-head1-side{display:flex;align-items:center;gap:.4rem;flex-shrink:0;}
+/* ⋯ menu (native details) */
+.cat-menu{position:relative;}
+.cat-menu>summary{list-style:none;cursor:pointer;}
+.cat-menu>summary::-webkit-details-marker{display:none;}
+.cat-menu-pop{position:absolute;right:0;top:100%;margin-top:.25rem;z-index:20;min-width:12rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 6px 20px rgba(0,0,0,.25);padding:.3rem;}
+.cat-menu-item{display:block;width:100%;text-align:left;background:none;border:0;color:var(--text);padding:.4rem .55rem;border-radius:var(--radius-sm);font:inherit;cursor:pointer;}
+.cat-menu-item:hover{background:var(--card-2);}
+.cat-menu-item.danger{color:var(--danger);}
+/* Subscription config modal: BIND snippets + Copy/Mark */
+.cat-manual-intro{margin:0 0 .6rem;}
+.cat-frag{margin-bottom:.7rem;}
+.cat-frag-h{display:flex;align-items:center;justify-content:space-between;gap:.6rem;font-weight:600;font-size:.8rem;color:var(--text-dim);margin-bottom:.25rem;}
+.cat-manual-cfg{background:var(--code-bg,rgba(0,0,0,.22));border:1px solid var(--border);border-radius:var(--radius-sm);padding:.55rem .65rem;margin:0;font-family:var(--mono,monospace);font-size:.78rem;line-height:1.45;white-space:pre;overflow-x:auto;max-height:18rem;}
+/* Servers status table: expandable groups + server status labels */
+.cat-srv-table .grp-head>td{background:var(--card-2);}
+.cat-srv-table .grp-toggle{color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;}
+.cat-srv-table .caret{color:var(--text-mute);font-size:.8rem;width:1em;display:inline-block;}
+.cat-srv-table .cat-srv-row>td:first-child{padding-left:1.8rem;}
+.cat-srv-table .cat-srv-row>td:last-child{white-space:nowrap;}
+.cat-srv-acts{display:inline-flex;align-items:center;gap:.4rem;justify-content:flex-end;}
+.cat-srv-table .icon-btn.sm{width:auto;height:auto;}   /* otherwise the 34×34 flex box breaks the row and ? jumps above Recheck */
+/* Catalog AXFR source: plain inline list of endpoints (Address + Port) */
+.src-link{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;padding:0;text-decoration:underline dotted;}
+.src-head{display:grid;grid-template-columns:1fr 6rem 1.8rem;gap:.5rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-mute);margin-bottom:.25rem;}
+.src-row{display:grid;grid-template-columns:1fr 6rem 1.8rem;gap:.5rem;align-items:center;margin-bottom:.4rem;}
+.src-row .field-input{margin-bottom:0;}
+.src-row .icon-btn.sm{width:auto;height:auto;}
+.src-delph{display:inline-block;}
+.cst{font-size:.82rem;}
+.cst-ok{color:var(--ok);font-weight:600;}
+.cst-warn{color:var(--warn);}
+.cst-err,.cst-blk{color:var(--danger);}
+.cst-muted{color:var(--text-mute);}
+@media(max-width:820px){.prop-cat-split{flex-direction:column;}.prop-cat-split .plist{flex:0 0 auto;width:100%;}}
+
+/* Zone type badges */
+.badge{
+  background-image:var(--sheen-soft,none);
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;padding:3px 8px;
+  border-radius:6px;border:1px solid var(--border-2);color:var(--text-dim);
+}
+.badge.master{color:var(--accent);border-color:var(--accent-dim);background-color:color-mix(in srgb,var(--accent) var(--tone-soft),transparent);}
+.badge.slave{color:var(--warn);border-color:color-mix(in srgb,var(--warn) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--warn) var(--tone-soft),transparent);}
+.badge.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--warn) var(--tone-soft),transparent);}
+.badge.err{color:var(--danger);border-color:color-mix(in srgb,var(--danger) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--danger) var(--tone-soft),transparent);}
+.badge.native{color:var(--text-dim);}
+/* Badge button: looks like a badge but opens settings; only the button styling is reset. */
+button.badge.badge-btn{font-family:inherit;cursor:pointer;background-color:transparent;}
+button.badge.badge-btn.master{background-color:color-mix(in srgb,var(--accent) var(--tone-soft),transparent);}
+button.badge.badge-btn.slave,button.badge.badge-btn.warn{background-color:color-mix(in srgb,var(--warn) var(--tone-soft),transparent);}
+button.badge.badge-btn:hover{filter:brightness(1.15);}
+/* Scope badges: internal blue, external purple */
+.badge.internal{color:var(--tone-info);border-color:color-mix(in srgb,var(--tone-info) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--tone-info) var(--tone-soft),transparent);}
+.badge.external{color:var(--tone-alt);border-color:color-mix(in srgb,var(--tone-alt) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--tone-alt) var(--tone-soft),transparent);}
+.badge.muted{color:var(--text-dim);border-color:var(--border-2);}
+.badge.kind-rev{color:var(--tone-rev);border-color:color-mix(in srgb,var(--tone-rev) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--tone-rev) var(--tone-soft),transparent);font-size:10px;padding:2px 6px;margin-left:6px;vertical-align:middle;}
+
+/* Pinger and Pulse parameters: two blocks side by side, numeric fields short. Full-width fields for "3600"
+   pushed a simple form off the screen. */
+.pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;}
+.pp-card{margin-bottom:1rem;}
+.pp-title{font-weight:600;margin-bottom:.7rem;}
+.pp-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.5rem;}
+.pp-row>label{flex:1 1 auto;font-size:13px;color:var(--text-dim);margin:0;}
+.pp-row .field-input{flex:0 0 7rem;margin-bottom:0;text-align:right;}
+@media(max-width:900px){.pp-grid{grid-template-columns:1fr;}}
+
+/* Record history window: three tabs (edits, Pulse publications, address answers). Look is shared
+   (.dist-tabs/.seg); only geometry inside the modal here. */
+.hist-tabs{margin:.2rem 0 .8rem;}
+.hist-win{margin:0 0 .7rem;}
+.hist-bar{margin:.2rem 0 .5rem;}
+/* Address strips are packed TIGHTLY and don't move; one shared transition table sits below them. With a table
+   per address, one flapping address inflated it and pushed the other strips out of the window. */
+.hist-ip{margin-bottom:.6rem;padding:.3rem .45rem;border-radius:8px;cursor:pointer;}
+.hist-ip:hover{background:color-mix(in srgb,var(--text) 5%,transparent);}
+.hist-ip.is-sel{background:color-mix(in srgb,var(--accent) 10%,transparent);}
+.hist-ip-head{display:flex;gap:.6rem;align-items:center;font-size:12.5px;margin-bottom:.3rem;}
+.hist-pick{margin:.8rem 0 .5rem;max-width:16rem;}
+
+/* Slow overview: the address doesn't answer probes. A dot, not a pill: the record has plenty already, and
+   the message is just "THIS address is silent". Reachable and unchecked addresses aren't marked.
+
+   A QUIET indicator, not an alarm lamp: colour heavily mixed with the panel background, no glow, a slow
+   breath every five seconds. ONLY opacity is animated: anything else (shadow, size, filters) forces layer
+   repaints, costly on a table with hundreds of rows. Users who asked for reduced motion get none. */
+.rr-dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  vertical-align:middle;margin-left:6px;cursor:pointer;
+  padding:0;border:none;appearance:none;-webkit-appearance:none;
+  background:color-mix(in srgb,var(--danger) 55%,var(--panel));
+  opacity:.55;animation:rr-dot-breath 5s ease-in-out infinite;
+}
+@keyframes rr-dot-breath{0%,100%{opacity:.35;}50%{opacity:.85;}}
+@media (prefers-reduced-motion: reduce){.rr-dot{animation:none;opacity:.6;}}
+
+/* R4: PTR status (reverse DNS) on forward A/AAAA. Same language as .badge. */
+.ptr-badge{
+  display:inline-flex;align-items:center;
+  font-size:11px;font-weight:600;padding:3px 8px;line-height:1.4;
+  border-radius:6px;border:1px solid var(--border-2);color:var(--text-dim);cursor:default;
+  font-family:inherit;text-decoration:none;
+}
+/* Clickable badges: deep link (a.ptr-link) and PTR creation (button.js-ptr-add) */
+a.ptr-badge,button.ptr-badge{cursor:pointer;background:none;}
+a.ptr-badge:hover,button.ptr-badge:hover{filter:brightness(1.25);text-decoration:none;}
+button.ptr-badge{appearance:none;-webkit-appearance:none;}
+button.ptr-badge:disabled{cursor:default;opacity:.6;}
+/* Record delete dialog with a table of matched PTRs (single + bulk).
+   .modal-card.dr-card: higher specificity than .dlg-card{max-width:26rem}, which would override the width. */
+.modal-card.dr-card{width:min(760px,94vw);max-width:min(760px,94vw);}
+.dr-ptr-title{margin:14px 0 8px;font-size:13px;font-weight:600;}
+.dr-table-wrap{max-height:46vh;overflow:auto;border:1px solid var(--border-2);border-radius:8px;}
+.dr-ptr-table{width:100%;font-size:13px;}
+.dr-ptr-table th,.dr-ptr-table td{padding:8px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border-2);white-space:nowrap;}
+.dr-ptr-table thead th{position:sticky;top:0;background:var(--bg-2);z-index:1;}
+.dr-ptr-table tbody tr:last-child td{border-bottom:none;}
+.dr-ptr-table .th-check{width:36px;text-align:center;}
+.dr-ptr-table .th-check input{cursor:pointer;}
+.dr-summary{margin-top:10px;font-size:12px;}
+
+/* Zone sync problem banner (activation_failed / notify_failed) + Retry now */
+.sync-banner{display:flex;align-items:flex-start;gap:14px;justify-content:space-between;
+  margin:0 0 1rem;padding:12px 14px;border-radius:8px;border:1px solid var(--border-2);}
+.sync-banner-err{border-color:rgba(224,75,75,.4);background:rgba(224,75,75,.07);}
+.sync-banner-warn{border-color:rgba(216,166,87,.4);background:rgba(216,166,87,.07);}
+.sync-banner-body{min-width:0;}
+.sync-banner-head{display:flex;align-items:center;gap:8px;font-size:14px;}
+.sync-banner-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+.sync-banner-err .sync-banner-dot{background:var(--danger);box-shadow:0 0 0 3px rgba(224,75,75,.15);}
+.sync-banner-warn .sync-banner-dot{background:var(--warn);box-shadow:0 0 0 3px rgba(216,166,87,.15);}
+.sync-banner-sub{font-size:12px;margin-top:3px;}
+.sync-banner-detail{font-size:11px;margin-top:6px;opacity:.75;word-break:break-word;}
+.sync-retry-btn{flex:0 0 auto;background-color:color-mix(in srgb,var(--danger) 16%,transparent);border-color:color-mix(in srgb,var(--danger) 40%,transparent);color:var(--danger);}
+.sync-banner-warn .sync-retry-btn{background-color:color-mix(in srgb,var(--warn) 16%,transparent);border-color:color-mix(in srgb,var(--warn) 40%,transparent);color:var(--warn);}
+.sync-retry-btn:disabled{opacity:.6;cursor:default;}
+/* Sync problem badge in the zone list */
+.badge.sync-badge{font-size:10px;padding:2px 6px;margin-left:6px;vertical-align:middle;}
+.badge.sync-badge-err{color:var(--danger);border-color:color-mix(in srgb,var(--danger) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--danger) var(--tone-soft),transparent);}
+.badge.sync-badge-warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) var(--tone-edge),transparent);background-color:color-mix(in srgb,var(--warn) var(--tone-soft),transparent);}
+/* Secondary (SLAVE) read-only panel: AXFR source, TSIG, state */
+.slave-panel{margin:0 0 1rem;padding:12px 14px;border:1px solid var(--border-2);border-radius:8px;background:var(--bg-2);}
+.slave-panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:13px;}
+.slave-panel-actions{margin-left:auto;display:flex;gap:8px;}
+.slave-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px 22px;}
+.slave-grid > div{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.slave-k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-mute);}
+.slave-v{font-size:13px;word-break:break-word;}
+.ptr-badge.ptr-ok{color:var(--ok);border-color:rgba(92,191,130,.35);background:rgba(92,191,130,.08);}
+.ptr-badge.ptr-missing{color:var(--warn);border-color:rgba(216,166,87,.35);background:rgba(216,166,87,.08);}
+.ptr-badge.ptr-different{color:var(--danger);border-color:rgba(224,75,75,.35);background:rgba(224,75,75,.08);}
+/* Multiple is ambiguity, not an error: the right name is among the PTRs, but not alone. A warning, not
+   danger: red would invite fixing something already correct. */
+.ptr-badge.ptr-multiple{color:var(--warn);border-color:rgba(216,166,87,.35);background:rgba(216,166,87,.08);}
+.ptr-badge.ptr-disabled{color:var(--text-dim);border-color:var(--border-2);}
+.ptr-badge.ptr-external{color:var(--tone-alt);border-color:color-mix(in srgb,var(--tone-alt) var(--tone-edge),transparent);background:color-mix(in srgb,var(--tone-alt) var(--tone-soft),transparent);}
+.ptr-badge.ptr-error{color:var(--danger);border-color:rgba(224,75,75,.35);background:rgba(224,75,75,.08);opacity:.75;}
+.ptr-badge.ptr-pending{color:var(--text-dim);border-color:transparent;background:transparent;opacity:.5;}
+
+/* Zone row actions + delete button */
+.row-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;row-gap:4px;}
+.zone-delete{
+  width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--danger);background:transparent;border:1px solid transparent;border-radius:6px;cursor:pointer;
+  transition:background .12s,border-color .12s;
+}
+.zone-delete:hover{background:rgba(227,106,106,.12);border-color:rgba(227,106,106,.3);}
+/* Fixed column widths so the table doesn't shift with data length. Sized for row content: type may carry
+   a second badge ("AXFR pending"), distribution a method ("Catalog: <name>"), actions Make primary. Taken from
+   Labels, Serial and Records: labels wrap, serial is 10 digits, the record count 1–5. */
+.data-table.zones-table{table-layout:fixed;}
+.zones-table col.c-zone{width:24%;} .zones-table col.c-labels{width:14%;}
+/* Distribution names BOTH lists ("Direct AXFR + Catalog: <fqdn>"); 15% cut the text right at the catalog name,
+   the very thing the column is for. Taken from Zone and Labels: zone names wrap, labels are chips anyway. */
+.zones-table col.c-type{width:12%;} .zones-table col.c-catalog{width:20%;} .zones-table col.c-serial{width:10%;} .zones-table col.c-rec{width:6%;}
+.zones-table col.c-act{width:14%;}
+a.cat-badge{text-decoration:none;cursor:pointer;} a.cat-badge:hover{filter:brightness(1.1);}
+/* Dashboard: summary cards in 2 columns, one on narrow screens. */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;}
+@media (max-width:900px){ .dash-grid{grid-template-columns:1fr;} }
+a.stat{color:inherit;} a.stat:hover{border-color:var(--accent);}
+.zones-table td,.zones-table th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Wrap rather than hide: with table-layout:fixed + overflow:hidden a narrow window would silently hide part
+   of the cell (zone role and available action would vanish). Ellipsis beats emptiness, wrapping beats ellipsis. */
+.zones-table td:nth-child(2),                        /* labels */
+.zones-table td:nth-child(4),                        /* type + AXFR pending */
+.zones-table td:nth-child(5),                        /* distribution: method + name */
+.zones-table td:nth-child(8){white-space:normal;}    /* actions: Manage / Make primary / Delete */
+
+.link{color:var(--accent);font-weight:600;}
+.link:hover{text-decoration:underline;}
+
+.empty-row{text-align:center;color:var(--text-mute);padding:2rem 0;}
+
+.spinner{
+  width:2.2rem;height:2.2rem;
+  border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite;margin:4rem auto;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* Menu navigation: the visible page stays in place and is only dimmed. Replacing it with a spinner shows
+   emptiness instead of a working screen and flashes again when the new page arrives. */
+#main-content.is-loading{opacity:.55;pointer-events:none;cursor:progress;}
+
+/* Overlay and modals */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(2px);z-index:9990;}
+/* Rule workspace: almost full screen but NOT all of it, so the originating page is visibly underneath.
+   Layer below dialogs: confirmations and cloning open on top of it. */
+#pulse-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);z-index:9980;
+  overflow:auto;padding:2vh 0;}
+.pl-sheet{width:min(1200px,calc(100vw - 4rem));margin:0 auto;background:var(--bg);border:1px solid var(--border);
+  border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:1.2rem 1.4rem 1.6rem;}
+.pl-sheet .pl-builder{width:auto;}
+@media (max-width:820px){ .pl-sheet{width:calc(100vw - 1rem);padding:.8rem;} }
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:.5rem;}
+.modal-card{
+  width:100%;max-width:26rem;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.5rem;max-height:95vh;overflow-y:auto;
+}
+.modal-title{font-size:16px;font-weight:600;margin:0 0 1.1rem;}
+/* Shared confirm/alert dialog */
+.dlg-card{max-width:26rem;}
+/* List pick dialog: the narrow card is sized for two or three fields; a table needs width. */
+.dlg-card.dlg-wide{max-width:min(74rem,96vw);}
+/* Window with TWO working lists: nearly the whole workspace but not full screen, the page below must stay
+   visible or it's a navigation, not a window. The card holds the height and the content scrolls: the caption
+   and Save/Cancel must stay in place, not slide below the list. */
+.dlg-card.dlg-xl{max-width:min(1400px,92vw);max-height:88vh;display:flex;flex-direction:column;}
+.dlg-card.dlg-xl .dlg-body{flex:1 1 auto;min-height:0;overflow:auto;}
+.dlg-body{color:var(--text-dim);font-size:13px;line-height:1.5;}
+/* disabled is plainly grey (not a faded red that reads as "another colour") */
+.btn.btn-danger:disabled{background-color:var(--border-2);border-color:var(--border-2);color:var(--text-mute);cursor:default;filter:none;}
+/* Header with a close button on the right */
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.1rem;}
+.modal-head .modal-title{margin:0;}
+.modal-x{background:none;border:none;color:var(--text-dim);font-size:22px;line-height:1;
+  cursor:pointer;padding:0 .1rem;margin:-.2rem -.2rem 0 .5rem;}
+.modal-x:hover{color:var(--text);}
+.modal-actions,.form-actions{display:flex;justify-content:flex-end;align-items:center;gap:.6rem;margin-top:1.2rem;}
+/* Themed select: native look removed, own arrow, dark menu */
+
+/* ---------- Zone form (Add zone) ---------- */
+/* Fixed dialog layout: header and footer pinned, only the body scrolls.
+   The window never exceeds the screen (92vh cap); a large Plan (many /24) scrolls inside the body. */
+.zform-wide{max-width:82rem;width:94vw;
+  display:flex;flex-direction:column;max-height:97vh;padding:0;overflow:hidden;}
+.zform-wide > .modal-head{flex:0 0 auto;margin:0;padding:1.5rem 1.5rem .9rem;}
+.zform-wide > .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:.6rem 1.5rem;}
+.zform-wide > #zone-create-err{flex:0 0 auto;margin:.2rem 1.5rem 0;}
+.zform-wide > .modal-actions{flex:0 0 auto;margin:0;padding:.9rem 1.5rem;
+  background:var(--card);border-top:1px solid var(--border);}
+/* Wrapper: the form stays centred; the labels panel slides out ABSOLUTELY to the right (window doesn't move). */
+.zform-shell{position:relative;}
+.labels-panel{
+  position:absolute;top:0;bottom:0;left:100%;width:300px;z-index:1;
+  background:var(--card);border:1px solid var(--border);border-left:none;
+  border-radius:0 var(--radius) var(--radius) 0;padding:1.25rem;flex-direction:column;
+}
+.lp-head{display:flex;align-items:center;justify-content:space-between;}
+.lp-body{flex:1;overflow-y:auto;min-height:0;margin-top:.2rem;}
+.labels-panel .lbl-cat{display:block;margin-bottom:.9rem;}
+.labels-panel .lbl-cat>label{display:block;flex:none;margin:0 0 .45rem;}
+/* Labels row in the form: selected chips + button */
+.rev-plan{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:.7rem .8rem;min-height:2.5rem;}
+.rev-plan-row{display:flex;align-items:center;gap:.6rem;padding:.2rem 0;font-size:13px;}
+.rev-plan-row .mono{flex:1;}
+.lbl-rowval{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+#lbl-selected{display:inline-flex;flex-wrap:wrap;gap:4px;}
+@media(max-width:900px){
+  /* narrow screen: panel on top, pinned to the modal's right edge */
+  .labels-panel{left:auto;right:0;}
+}
+.zform-sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mute);
+  font-weight:600;margin:0 0 .8rem;}
+.zform-div{border:none;border-top:1px solid var(--border);margin:1.25rem 0;}
+.zform-cols{display:grid;grid-template-columns:1.15fr 1fr;gap:1.5rem;}
+@media(max-width:720px){.zform-cols{grid-template-columns:1fr;}}
+.zform-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.6rem;}
+.zform-row>label{flex:0 0 6.5rem;font-size:13px;color:var(--text-dim);margin:0;}
+.zform-row .field-input{margin-bottom:0;flex:1;}
+.zone-name-field{flex:1;min-width:0;}
+.zone-name-error{color:var(--danger);font-size:13px;margin-top:.35rem;}
+.zform-list-row{display:flex;gap:.4rem;margin-bottom:.5rem;align-items:center;}
+.zform-list-row .field-input{margin-bottom:0;flex:1;}
+.zform-x{padding:0 .6rem;flex:0 0 auto;}
+@media(max-width:640px){.zform-cols{grid-template-columns:1fr;gap:1rem;}.zform-row>label{flex-basis:5.5rem;}}
+
+/* ---------- Custom select (menu in the site theme, not the native OS popup) ---------- */
+.ui-select{position:relative;flex:1;}
+.ui-select-trigger{
+  width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
+  padding:.55rem .7rem;color:var(--text);font-size:14px;cursor:pointer;user-select:none;
+  display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  transition:border-color .12s,box-shadow .12s;
+}
+.ui-select-trigger:hover{border-color:var(--border-2);}
+.ui-select.open .ui-select-trigger{border-color:var(--accent-dim);box-shadow:0 0 0 2px rgba(75,179,165,.2);}
+.ui-select .chev{
+  flex:0 0 auto;width:.5rem;height:.5rem;border-right:2px solid var(--text-dim);
+  border-bottom:2px solid var(--text-dim);transform:translateY(-2px) rotate(45deg);transition:transform .12s;
+}
+.ui-select.open .chev{transform:translateY(2px) rotate(-135deg);}
+.ui-select-menu{
+  position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;display:none;
+  background:var(--card-2);border:1px solid var(--border-2);border-radius:8px;padding:.3rem;
+  box-shadow:0 10px 28px rgba(0,0,0,.5);max-height:15rem;overflow-y:auto;
+}
+.ui-select.open .ui-select-menu{display:block;}
+.ui-select-opt{padding:.45rem .6rem;border-radius:6px;font-size:14px;color:var(--text);cursor:pointer;}
+.ui-select-opt:hover{background:var(--panel);}
+.ui-select-opt.sel{background:var(--accent-dim);color:var(--text);}
+
+/* ---------- Labels: chip picking in forms ---------- */
+.zform-labels .lbl-cat{display:flex;align-items:flex-start;gap:.8rem;margin-bottom:.7rem;}
+.zform-labels .lbl-cat>label{flex:0 0 6.5rem;font-size:13px;color:var(--text-dim);margin:.25rem 0 0;}
+.lbl-chips{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
+.lbl-chip{
+  display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;cursor:pointer;user-select:none;
+  border:1px solid var(--border-2);color:var(--text-dim);background:transparent;transition:.12s;
+}
+.lbl-chip:hover{color:var(--text);border-color:var(--c,var(--border-2));}
+.lbl-chip.on{color:var(--accent-fg);border-color:var(--c,var(--accent));
+  background:color-mix(in srgb, var(--c,var(--accent)) 24%, transparent);}
+/* Labels in the zones table (read-only): muted border, colour only in text */
+.lbl-tag{
+  display:inline-block;padding:2px 8px;margin:1px 4px 1px 0;border-radius:11px;font-size:11px;
+  border:1px solid color-mix(in srgb, var(--c,var(--accent)) 30%, transparent);
+  color:color-mix(in srgb, var(--c,var(--text-dim)) var(--tag-ink), var(--text));
+  background:color-mix(in srgb, var(--c,var(--accent)) 10%, transparent);white-space:nowrap;
+}
+.lbl-more{font-size:11px;color:var(--text-mute);}
+
+/* ---------- Manage Zone (zone page) ---------- */
+.btn-sm{padding:.28rem .6rem;font-size:12px;}
+.zone-head .zone-meta{display:flex;align-items:center;gap:.4rem;margin-top:.3rem;}
+.zone-labels-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:.6rem;}
+/* SOA accordion */
+.soa-acc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;}
+.soa-acc>summary{list-style:none;cursor:pointer;padding:.8rem 1rem;display:flex;align-items:center;gap:.6rem;}
+.soa-acc>summary::-webkit-details-marker{display:none;}
+.soa-acc>summary::before{content:"\25b8";color:var(--text-mute);transition:transform .12s;font-size:11px;}
+.soa-acc[open]>summary::before{transform:rotate(90deg);}
+.soa-acc-title{font-weight:600;font-size:13px;}
+.soa-acc-sum{color:var(--text-dim);font-size:13px;font-family:var(--mono,monospace);}
+.soa-acc-body{padding:0 1rem 1rem 1rem;border-top:1px solid var(--border);}
+.soa-view{display:grid;grid-template-columns:1fr 1fr;gap:.4rem 2rem;padding-top:.9rem;}
+.soa-view .kv{display:flex;justify-content:space-between;gap:1rem;font-size:13px;padding:.15rem 0;}
+.soa-view .kv>span{color:var(--text-dim);}
+@media(max-width:640px){.soa-view{grid-template-columns:1fr;}}
+/* Sections inside the accordion: SOA line + NS table */
+.acc-sec{padding-top:.9rem;}
+.acc-sec+.acc-sec{margin-top:.4rem;}
+.acc-sec-title{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-mute);margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;}
+/* Shared history button, right side of the accordion header */
+.acc-hist-wrap{margin-left:auto;display:inline-flex;}
+.soa-table,.ns-table{font-size:12.5px;}
+.soa-table td,.soa-table th,.ns-table td,.ns-table th{padding:.45rem .6rem;white-space:nowrap;}
+.ns-add-row{display:flex;gap:.5rem;align-items:center;margin-top:.6rem;}
+.ns-add-row .field-input{margin-bottom:0;}
+.ns-add-row .ns-add-input{width:16rem;}
+/* Copy-full-value popover */
+.copy-pop{position:fixed;z-index:10000;background:var(--card);border:1px solid var(--border-2,var(--border));
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);padding:.5rem;max-width:340px;display:flex;gap:.6rem;align-items:center;}
+.copy-pop-txt{flex:1;min-width:0;color:var(--text);font-family:var(--mono,monospace);font-size:12px;
+  white-space:pre-wrap;word-break:break-all;max-height:8rem;overflow:auto;user-select:text;-webkit-user-select:text;}
+.copy-pop-btn{flex:0 0 auto;}
+/* Inline add: one line, label left of the field, height ≈ the filter row */
+.rr-add{margin-bottom:1rem;}
+.rr-add-inline{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .7rem;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem .7rem;}
+.rr-add-inline .rai-lbl{font-size:12px;color:var(--text-mute);white-space:nowrap;}
+.rr-add-inline .field-input{margin-bottom:0;}
+/* Record name is 10rem. With the zone shown next to it, the long part of the name is visible as a caption
+   and only the short part is typed. The form stays flex-wrap and wraps on narrow screens; the Name COLUMN
+   width in the records table is unchanged. */
+.rr-add-inline .rai-name{width:10rem;}
+/* Zone next to the name field: a caption, not a field. Butted against it so together they read as one name,
+   as the record will appear in the zone. */
+.rr-add-inline .rai-zone{font-size:12.5px;color:var(--text-mute);white-space:nowrap;margin-left:-.4rem;}
+.rr-add-inline .rai-ip{width:11rem;}
+.rr-add-inline .rai-val{width:16rem;}
+.rr-add-inline .rai-ttl{width:5rem;}
+.rr-add-inline .ui-select{width:7rem;flex:0 0 auto;}
+.rr-add-inline #ra-add{margin-left:.2rem;}
+.rai-ptr{display:inline-flex;align-items:center;gap:.35rem;font-size:12px;color:var(--text-dim);white-space:nowrap;cursor:pointer;}
+/* Type-specific fields (add): label left of the field, one line */
+.rai-fields{display:inline-flex;align-items:center;gap:.4rem .5rem;flex-wrap:wrap;}
+.rai-fields .f-num{width:4.5rem;}
+.rai-fields .f-val{width:14rem;}
+.rai-fields .ui-select{width:8rem;flex:0 0 auto;}
+.rr-table .rr-params, .rr-table .rr-val{white-space:normal;}
+.rr-checkcell{text-align:center;}
+.th-check{text-align:center;}
+/* Site-wide CHECKBOX style: muted grey (not eye-catching) */
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:15px;height:15px;margin:0;flex:0 0 auto;
+  border:1px solid var(--border-2);border-radius:4px;background:var(--bg-2);cursor:pointer;
+  vertical-align:middle;position:relative;}
+input[type=checkbox]:hover{border-color:var(--text-mute);}
+input[type=checkbox]:checked, input[type=checkbox]:indeterminate{background:var(--border-2);border-color:var(--border-2);}
+input[type=checkbox]:checked::after{content:"";position:absolute;left:4px;top:1px;
+  width:4px;height:8px;border:solid var(--text-dim);border-width:0 2px 2px 0;transform:rotate(45deg);}
+input[type=checkbox]:indeterminate::after{content:"";position:absolute;left:3px;top:6px;width:8px;height:2px;background:var(--text-dim);}
+/* radio: site-wide style (like the checkbox, round, accent dot when selected) */
+input[type=radio]{appearance:none;-webkit-appearance:none;width:15px;height:15px;margin:0;flex:0 0 auto;
+  border:1px solid var(--border-2);border-radius:50%;background:var(--bg-2);cursor:pointer;
+  vertical-align:middle;position:relative;}
+input[type=radio]:hover{border-color:var(--text-mute);}
+input[type=radio]:checked{border-color:var(--accent);}
+input[type=radio]:checked::after{content:"";position:absolute;left:3px;top:3px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
+input[type=radio]:disabled,input[type=checkbox]:disabled{opacity:.5;cursor:not-allowed;}
+/* Sortable headers */
+.rr-table th.th-sort{cursor:pointer;user-select:none;white-space:nowrap;}
+.rr-table th.th-sort:hover{color:var(--text);}
+.rr-table th.th-sort.sorted{color:var(--accent);}
+/* Bulk operations bar: in the filter row, on the right */
+.rr-bulk{display:inline-flex;align-items:center;gap:.4rem;margin-left:auto;padding:.15rem .5rem .15rem .6rem;
+  background:rgba(75,179,165,.08);border:1px solid var(--accent-dim);border-radius:8px;}
+.rr-bulk-count{font-weight:600;font-size:12px;margin-right:.2rem;white-space:nowrap;}
+.rr-bulk-hidden{font-size:11px;color:var(--text-mute);white-space:nowrap;margin-right:.2rem;}
+.rr-bulk .btn-sm{padding:.15rem .5rem;}
+.rr-bulk .rr-bulk-del{color:var(--danger);}
+
+/* In-place edit: only cell content changes. Compact inputs (display:block + negative vertical margin) take
+   about the text height, so the row does NOT change height. */
+/* Rows of one RRset (name+type) are one set, managed by Pulse as a whole. Inside the group the separator is
+   removed and a thin line runs on the left: one block of several DNS records, each still edited separately.
+   The Pulse badge is shown once (see markRrsets()). */
+.rr-row.rrset-many:not(.rrset-last)>td{border-bottom-color:transparent;}
+.rr-row.rrset-many>td:nth-child(2){box-shadow:inset 2px 0 0 var(--border-2);}
+.rr-pulse.is-dup{visibility:hidden;}
+.rr-row.rr-editing>td{background:rgba(75,179,165,.08);}
+.rr-row.rr-search-hit>td,.ns-row.rr-search-hit>td,#soa-row.rr-search-hit>td{
+  background:rgba(75,179,165,.16);
+  box-shadow:inset 0 1px 0 rgba(75,179,165,.28),inset 0 -1px 0 rgba(75,179,165,.28);
+}
+/* Fixed layout: column widths don't depend on text↔input (otherwise columns jump). */
+.soa-table, .ns-table, .rr-table{table-layout:fixed;}
+.soa-table td, .soa-table th, .ns-table td, .ns-table th{overflow:hidden;text-overflow:ellipsis;}
+/* inline inputs fill their cell (width:100%), so columns stay put */
+.rr-table .rie-ttl,
+.soa-table .soa-inp,
+.ns-table .ns-inp, .ns-table .ns-ttl-inp{
+  display:inline-block;vertical-align:middle;margin:-3px 0;padding:.12rem .45rem;
+  font-size:12.5px;line-height:1.3;border-radius:6px;width:100%;}
+/* Type-specific fields in the VALUE cell while editing (compact, one line) */
+.rie-fields{display:flex;align-items:center;gap:.3rem .4rem;flex-wrap:wrap;}
+.rie-fields .rai-lbl{font-size:11px;color:var(--text-mute);white-space:nowrap;}
+.rie-fields .rie-f{display:inline-block;vertical-align:middle;margin:-3px 0;padding:.1rem .4rem;
+  font-size:12px;line-height:1.3;border-radius:6px;}
+.rie-fields .f-num{width:3.5rem;}
+.rie-fields .f-val{flex:1 1 8rem;min-width:6rem;}
+.rie-fields .ui-select{min-width:6rem;margin:-3px 0;}
+.rie-err{margin-left:.4rem;}
+/* Inline Status uses the shared themed ui-select (compact, no row height growth) */
+.rr-row.rr-editing .ui-select{margin:-3px 0;}
+.rr-row.rr-editing .ui-select-trigger{padding:.12rem .45rem;font-size:12.5px;border-radius:6px;}
+.zs-role-ro{font-size:14px;color:var(--text);}
+/* Zone settings: one form of sections. 26rem (the shared modal width) broke the "Distribution" row into three
+   (field, caption and hint didn't fit side by side). Same width as the move dialog (.dr-card). */
+.modal-card.zs-card{width:min(700px,94vw);max-width:min(700px,94vw);}
+.zs-card .zform-sec + .zform-sec{margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border);}
+.zs-card .zform-row{align-items:flex-start;}
+.zs-card .zform-row>label{flex-basis:9.5rem;padding-top:.45rem;}
+/* The hint-under-control row is the same in zone settings and zone creation: same questions, same words.
+   So the style is shared, not duplicated for the second card. */
+.zform-grow{flex:1;min-width:0;}
+.up-tsig-new{display:grid;gap:.4rem;margin-top:.4rem;}
+.zform-note{font-size:12px;color:var(--text-mute);margin-top:.5rem;}
+.zform-wide .zform-row:has(>.zform-grow){align-items:flex-start;}
+.zform-wide .zform-row:has(>.zform-grow>.ui-select:first-child)>label,
+.zform-wide .zform-row:has(>.zform-grow>.field-input:first-child)>label{padding-top:.65rem;}
+
+/* Last change: who/when + history icon */
+/* Custom tooltip in theme colours. Lives in body, positioned by script (position:fixed), otherwise tables
+   would clip it (.table-wrap has overflow:hidden). The arrow is a rotated square of the same colour. */
+.ui-tip{
+  position:fixed;z-index:9999;pointer-events:none;max-width:22rem;
+  background:var(--card-2);color:var(--text);border:1px solid var(--border-2);border-radius:8px;
+  padding:.35rem .55rem;font-size:12.5px;line-height:1.35;box-shadow:0 6px 18px rgba(0,0,0,.35);
+  /* pre-line, not normal: a tooltip listing record sets becomes mush on one line. Line breaks come from the
+     author of the text; extra spaces still collapse. */
+  white-space:pre-line;overflow-wrap:anywhere;
+}
+.ui-tip::after{
+  content:"";position:absolute;left:50%;margin-left:-4px;width:8px;height:8px;
+  background:var(--card-2);border-right:1px solid var(--border-2);border-bottom:1px solid var(--border-2);
+  transform:rotate(45deg);bottom:-5px;
+}
+.ui-tip.below::after{bottom:auto;top:-5px;transform:rotate(225deg);}
+/* WHAT DESERVES A TOOLTIP. Only what isn't visible on screen: what an icon or state means, why an action is
+   unavailable, the full value truncated by a column. A tooltip doesn't repeat the button label, teach clicking
+   or name a hotkey: a UI with "click here" on every button reads like a first-run tutorial and people stop
+   reading tooltips altogether, including the ones that matter. The icon name for screen readers is
+   aria-label and needn't become a tooltip.
+
+   No "?" cursor on tooltips. A tooltip appears on hover by itself; changing the cursor promises an action
+   that isn't there (an input stops looking like an input, an icon like an icon). The cursor only signals
+   actions: pointer for buttons and links, default otherwise. */
+button[data-tip],a[data-tip],[data-tip].btn{cursor:pointer;}
+
+/* Who/when changed: author icon, time, history button in one line; history pushed right. */
+.lc-cell{display:flex;align-items:center;gap:.45rem;}
+.lc-cell > button{margin-left:auto;}
+.lc-who{display:inline-flex;align-items:center;color:var(--text-mute);flex:0 0 auto;}
+.lc-who:hover{color:var(--text-dim);}
+.lc-at{font-size:11px;line-height:1.2;}
+.rr-hist{background:none;border:none;color:var(--text-mute);cursor:pointer;padding:.15rem;
+  display:inline-flex;align-items:center;border-radius:5px;flex:0 0 auto;}
+.rr-hist:hover{color:var(--accent);background:rgba(75,179,165,.1);}
+/* Propagation icon buttons (history/TSIG) have their OWN class, NOT .rr-hist: that one is caught by the global
+   click handler in records.js (opens the wrong History). .prop-icbtn mirrors the .rr-hist look. */
+.prop-icbtn{background:none;border:none;color:var(--text-mute);cursor:pointer;padding:.15rem;display:inline-flex;align-items:center;border-radius:5px;flex:0 0 auto;}
+.prop-icbtn:hover{color:var(--accent);background:rgba(75,179,165,.1);}
+.prop-icbtn.on{color:var(--accent);}   /* server with an active personal TSIG key */
+/* RRset change history (modal table) */
+.hist-modal{max-width:min(1400px,90vw);width:90vw;max-height:85vh;}
+.hist-scroll{max-height:calc(85vh - 130px);overflow:auto;margin:.4rem 0;}
+.hist-table{font-size:12.5px;}
+.hist-table th,.hist-table td{padding:.5rem .7rem;white-space:nowrap;vertical-align:top;}
+/* Sticky header on vertical scroll */
+.hist-table thead th{position:sticky;top:0;z-index:1;background:var(--card);}
+/* Before/After: one line, long values truncated with …, full text in title */
+.hist-table td.hist-val{max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;border:1px solid transparent;}
+.hist-badge.act-add{color:var(--accent);border-color:var(--accent-dim);background:rgba(75,179,165,.1);}
+.hist-badge.act-del{color:var(--danger);border-color:color-mix(in srgb,var(--danger) var(--tone-edge),transparent);background:color-mix(in srgb,var(--danger) var(--tone-soft),transparent);}
+.hist-badge.act-upd{color:var(--tone-rev);border-color:color-mix(in srgb,var(--tone-rev) var(--tone-edge),transparent);background:color-mix(in srgb,var(--tone-rev) var(--tone-soft),transparent);}
+.hist-badge.act-off{color:var(--text-mute);border-color:var(--border);background:transparent;}
+
+/* ---------- Settings → Labels (taxonomy management) ---------- */
+.lbl-newcat-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;}
+.lbl-newcat-row .field-input{margin-bottom:0;}
+.lbl-newcat-row #lc-name{flex:1;min-width:180px;}
+.lbl-newcat-row #lc-card{flex:0 0 auto;width:auto;}
+.lbl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;align-items:start;}
+.lbl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;}
+.lbl-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;}
+.lbl-card-title{font-weight:600;font-size:14px;}
+.lbl-card-values{display:flex;flex-wrap:wrap;gap:6px;min-height:1.6rem;margin-bottom:.8rem;}
+.lbl-card-values .lbl-tag{display:inline-flex;align-items:center;gap:5px;}
+.lbl-val-del,.lbl-cat-del{background:none;border:none;cursor:pointer;color:inherit;opacity:.65;
+  padding:0;line-height:1;font-size:13px;display:inline-flex;align-items:center;}
+.lbl-val-del:hover{opacity:1;color:var(--danger);}
+.lbl-cat-del{color:var(--danger);opacity:.7;}
+.lbl-cat-del:hover{opacity:1;}
+.lbl-addval{display:flex;gap:.4rem;align-items:center;}
+.lbl-addval .field-input{margin-bottom:0;flex:1;}
+.lbl-val-color{width:34px;height:34px;padding:2px;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg-2);cursor:pointer;flex:0 0 auto;}
+.lbl-val-add{flex:0 0 auto;padding:0 .8rem;}
+
+/* ---------- Login ---------- */
+.login-wrap{height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;background:var(--bg);}
+.login-card{width:100%;max-width:22rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem;}
+.login-card .brand{justify-content:center;padding-bottom:1.5rem;}
+.field-label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:.35rem;}
+/* .field-input is NOT appearance (that's on the tag) but legacy form layout: full width with a bottom margin. */
+.field-input{width:100%;margin-bottom:1rem;}
+.login-error{color:var(--danger);font-size:13px;margin-bottom:1rem;}
+.login-error.is-ok{color:var(--text-dim);}
+
+/* --- login flow: multi-step forms --- */
+.login-h{font-size:18px;font-weight:600;margin:0 0 1rem;}
+.login-sub{font-size:13px;line-height:1.5;margin:-.4rem 0 1.1rem;}
+.login-lbl{display:block;font-size:13px;color:var(--text-dim);margin-bottom:.35rem;}
+/* The login field is a plain <input> styled by tag above; ONLY geometry here. (A second copy of the control's
+   look here once brought back the password field flicker on autofill.) */
+.login-step .field-input{width:100%;margin-bottom:1rem;}
+.login-submit{width:100%;justify-content:center;margin-top:.3rem;}
+.totp-qr{display:flex;justify-content:center;margin:.4rem 0 .8rem;}
+.totp-qr img{border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px;} /* literal-color: a QR code needs a white background to scan */
+.totp-secret{font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:1rem;word-break:break-all;}
+.totp-secret code{color:var(--text);font-size:12px;}
+.recovery-codes{list-style:none;margin:0 0 1.1rem;padding:.7rem;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:.35rem .8rem;font-family:ui-monospace,monospace;font-size:13px;}
+.btn-link{background:none;border:none;color:var(--text-dim);font-size:13px;cursor:pointer;padding:.4rem;width:100%;}
+.btn-link:hover{color:var(--text);}
+.login-link{margin-top:.5rem;}
+.login-remember{display:flex;margin:-.3rem 0 .8rem;font-size:13px;}
+
+/* ============================================================
+   Responsive: narrow screen → icon-only sidebar
+   ============================================================ */
+@media (max-width:820px){
+  .sidebar{width:56px;padding:14px 8px;}
+  .sidebar .brand .name,
+  .nav-link span,
+  .user-chip .u-meta{display:none;}
+  .nav-link{justify-content:center;}
+}
+@media (max-width:560px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .content{padding:16px;}
+}
+
+/* ── Distribution (Inventory foundation, DOCS/21 §9) ── */
+.dist-tabs { display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:1.1rem; flex-wrap:wrap; }
+.dist-tab { background:none; border:none; color:var(--text-dim); padding:.55rem .95rem; cursor:pointer; font:inherit;
+    font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.dist-tab:hover { color:var(--text); }
+.dist-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.mini { color:var(--text-mute); font-size:.78rem; }
+.pill { display:inline-block; padding:.1rem .5rem; border-radius:999px; font-size:.78rem; font-weight:500; }
+.pill.ok  { background:color-mix(in srgb,var(--ok) 20%,transparent);    color:var(--ok); }
+.pill.warn{ background:color-mix(in srgb,var(--warn) 22%,transparent);  color:var(--warn); }
+.pill.err { background:color-mix(in srgb,var(--danger) 20%,transparent);color:var(--danger); }
+.pill.muted { background:var(--card-2); color:var(--text-mute); }
+.mono { font-family:var(--mono,monospace); }
+.plist { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:sticky; top:12px; }
+.plist-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.55rem .7rem; border-bottom:1px solid var(--border); font-weight:600; font-size:.9rem; }
+.plist-rows { display:flex; flex-direction:column; }
+.plist-row { display:block; width:100%; text-align:left; background:none; border:none; border-bottom:1px solid var(--border); padding:.55rem .75rem; cursor:pointer; font:inherit; color:var(--text); }
+.plist-row:last-child { border-bottom:none; }
+.plist-row:hover { background:var(--card-2); }
+.plist-row.selected { background:var(--accent); color:var(--accent-fg); }
+.plist-name { font-weight:600; }
+.plist-sub { font-size:.8rem; color:var(--text-dim); margin-top:.15rem; }
+.plist-row.selected .plist-sub { color:var(--accent-fg); opacity:.8; }
+/* card status: its own flex row, so the pill doesn't merge with text or look clipped */
+.plist-meta { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; opacity:1; }
+.plist-row.selected .plist-meta { opacity:1; }
+.plist-row.selected .plist-meta > span { opacity:.85; }
+/* a coloured pill is unreadable on the accent background; same trick as for .badge */
+.plist-row.selected .pill { background:rgba(0,0,0,.28); color:var(--accent-fg); }
+/* status badge on the selected (accent) catalog row, otherwise teal-on-teal merges */
+.prop-cat-split .plist-row.selected .badge { background:rgba(0,0,0,.28); color:var(--accent-fg); border-color:transparent; }
+@media (max-width: 960px) {
+    .plist { position:static; }
+}
+.dsec { padding:.85rem 0; border-bottom:1px solid var(--border); }
+.dsec:last-child { border-bottom:none; }
+.dsec-h { font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-mute); font-weight:600; margin-bottom:.5rem; }
+.dsec-act { margin-top:.6rem; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+.frow { display:flex; align-items:center; gap:.6rem; margin-bottom:.5rem; }
+.frow > label { width:6.5rem; flex:none; font-size:.82rem; color:var(--text-dim); }
+/* form row with a hint: control and text below it in one column, otherwise a long hint overlaps the next row */
+.frow.frow-note { align-items:flex-start; }
+.frow.frow-note > label { padding-top:.15rem; }
+.frow-col { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.frow-col .mini { line-height:1.35; }
+.frow .field-input { flex:1; }
+.frow-add { display:flex; gap:.4rem; margin-top:.5rem; }
+.frow-add.wrap { flex-wrap:wrap; }
+.frow-add .field-input { flex:1; min-width:6rem; }
+.field-input.port { max-width:5rem; flex:none; }
+.chks { display:flex; gap:1rem; flex-wrap:wrap; }
+.chk { display:inline-flex; align-items:center; gap:.35rem; font-size:.88rem; color:var(--text-dim); white-space:nowrap; }
+/* Choice list variant: multi-line label next to a checkbox/radio. */
+.chk.block { display:flex; align-items:flex-start; white-space:normal; line-height:1.4; padding:.3rem 0; }
+.chips { display:flex; flex-wrap:wrap; gap:.4rem; }
+.chip { display:inline-flex; align-items:center; gap:.3rem; background:var(--card-2); border:1px solid var(--border);
+    border-radius:999px; padding:.15rem .6rem; font-size:.82rem; }
+.chip-x, .icon-btn { background:none; border:none; color:var(--text-mute); cursor:pointer; font-size:1rem; line-height:1; padding:0 0 0 .15rem; }
+.chip-x:hover, .icon-btn:hover { color:var(--danger); }
+.icon-btn { font-size:1.4rem; }
+.issues { margin:.4rem 0 0; padding-left:1.1rem; color:var(--warn); font-size:.85rem; }
+.issues li { margin:.15rem 0; }
+.ep-list { display:flex; flex-direction:column; gap:.3rem; }
+.ep-row { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.35rem .5rem; background:var(--card-2); border-radius:var(--radius-sm); font-size:.86rem; }
+.ep-row.editing { background:transparent; padding:0; }
+.ep-actions { display:inline-flex; align-items:center; gap:.5rem; }
+.ep-edit { display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; width:100%; }
+.field-input.sm { font-size:.84rem; padding:.3rem .45rem; }
+.btn.sm { padding:.3rem .6rem; font-size:.82rem; }
+.lnk { background:none; border:none; color:var(--accent); cursor:pointer; font:inherit; font-size:.82rem; padding:0; }
+.lnk:hover { text-decoration:underline; }
+/* The only style for a destructive-action button. Don't add a second one: there used to be two, and the
+   first (solid fill) was never visible because this one overrode it. */
+.btn.btn-danger { background-color:color-mix(in srgb,var(--danger) 15%,transparent); color:var(--danger); border:1px solid color-mix(in srgb,var(--danger) 35%,transparent); }
+.btn.btn-danger:hover { background-color:color-mix(in srgb,var(--danger) 25%,transparent); }
+.ro { color:var(--text); }
+.banner-err { border-color:var(--danger); margin-bottom:1rem; }
+
+/* Overview (composition/topology) */
+.ov-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
+.ov-card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:.9rem 1rem; }
+.ov-cardhead { display:flex; align-items:center; gap:.5rem; font-size:1.05rem; font-weight:600; margin-bottom:.7rem; }
+.ov-flow { display:flex; flex-direction:column; gap:.3rem; }
+.ov-step { background:var(--card-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .65rem; }
+.ov-step.muted { opacity:.7; }
+.ov-lbl { font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-mute); margin-bottom:.25rem; }
+.ov-val { font-size:.9rem; display:flex; flex-wrap:wrap; gap:.35rem .5rem; align-items:center; }
+.ov-item { display:inline-flex; align-items:center; gap:.25rem; }
+.ov-arr { text-align:center; color:var(--text-mute); font-size:.9rem; line-height:1; }
+.ov-auth { display:block; margin:.1rem 0; }
+.ov-k { display:inline-block; min-width:3.7rem; color:var(--text-mute); font-size:.78rem; }
+.lnk-goto { background:none; border:none; padding:0; font:inherit; color:var(--accent); cursor:pointer; }
+.lnk-goto:hover { text-decoration:underline; }
+.hint { margin:.35rem 0 0; font-size:.78rem; color:var(--text-mute); }
+
+/* Distribution profiles (audience-centric) */
+.dist-tabs-sep { margin-left:.75rem; padding-left:.75rem; border-left:1px solid var(--border); color:var(--text-mute);
+    font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; align-self:center; }
+.rule-card { background:var(--card-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .6rem; margin-bottom:.5rem; }
+.rule-head { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.35rem; }
+.chip.chip-exc { color:var(--warn); }
+.chks.vert { display:flex; flex-direction:column; gap:.25rem; align-items:flex-start; }
+.pv-sum { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.45rem; }
+.pv-list { max-height:220px; overflow-y:auto; }
+.pv-row { display:flex; justify-content:space-between; gap:.5rem; padding:.2rem 0; border-bottom:1px solid var(--border); font-size:.86rem; }
+.pv-row:last-child { border-bottom:none; }
+
+/* two-level nav + override controls */
+.dist-modebar { display:flex; gap:2px; border-bottom:1px solid var(--border); margin-bottom:.5rem; }
+.dist-mode { background:none; border:none; color:var(--text-dim); padding:.55rem 1rem; cursor:pointer; font:inherit; font-weight:600;
+    border-bottom:2px solid transparent; margin-bottom:-1px; }
+.dist-mode:hover { color:var(--text); }
+.dist-mode.active { color:var(--accent); border-bottom-color:var(--accent); }
+.dist-subtabs { display:flex; gap:2px; margin-bottom:1rem; }
+.dist-subtabs .dist-tab { padding:.4rem .8rem; font-size:.9rem; }
+.ovr { white-space:nowrap; }
+.pv-meta { display:inline-flex; align-items:center; gap:.5rem; flex-wrap:wrap; justify-content:flex-end; }
+
+/* profile-centric: topbar + full-page profile + effective infra */
+.dist-topbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; min-height:38px; margin-bottom:1rem; flex-wrap:wrap; }
+.dist-crumb { font-size:1.05rem; font-weight:600; }
+.dist-topbar-actions { display:flex; gap:.5rem; align-items:center; }
+.dist-back { background:none; border:none; color:var(--accent); cursor:pointer; font:inherit; font-size:.9rem; padding:0; }
+.dist-back:hover { text-decoration:underline; }
+.dist-subtabs { display:flex; gap:2px; }
+.dist-subtabs .dist-tab { background:none; border:none; color:var(--text-dim); padding:.4rem .8rem; cursor:pointer; font:inherit; font-weight:500; border-radius:var(--radius-sm); }
+.dist-subtabs .dist-tab:hover { color:var(--text); background:var(--card-2); }
+.dist-subtabs .dist-tab.active { color:var(--accent-fg); background:var(--accent); }
+.dist-status { margin-bottom:.75rem; display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
+.eff-k { flex:0 0 9rem; color:var(--text-mute); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+
+/* task-oriented profile blocks */
+.lnk.sm { font-size:.78rem; }
+.banner-warn { border-color:var(--warn); margin-bottom:1rem; }
+.chip.chip-btn { cursor:pointer; color:var(--text); font:inherit; font-size:.82rem; }
+.chip.chip-btn:hover { border-color:var(--accent); color:var(--accent); }
+.zsum-line { font-weight:500; margin-bottom:.2rem; }
+.zsum-counts { margin:.5rem 0; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.eff-card { border:1px solid var(--border); border-radius:var(--radius-sm); padding:.6rem .75rem; margin-bottom:.6rem; }
+.eff-card-h { display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem; }
+.eff-line { display:flex; gap:.75rem; align-items:baseline; margin:.15rem 0; }
+
+/* provisioning plan (read-only diff, Gate 1) */
+.plan-group { margin:.5rem 0; }
+.plan-h { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--text-mute); font-weight:600; margin:.15rem 0 .3rem; }
+.plan-list { list-style:none; margin:0; padding:0; }
+.plan-item { padding:.32rem .55rem; margin:.25rem 0; border:1px solid var(--border); border-left:3px solid var(--border);
+    border-radius:var(--radius-sm); background:var(--card-2); font-size:.86rem; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.plan-item.plan-act  { border-left-color:var(--ok); }
+.plan-item.plan-blk  { border-left-color:var(--danger); }
+.plan-item.plan-gate { border-left-color:var(--warn); color:var(--text-mute); }
+.plan-foot { margin-top:.55rem; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.adv-back { padding:.5rem .9rem 0; }
+.cat-line { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin-bottom:.2rem; }
+.cat-plan { margin-top:.75rem; padding-top:.7rem; border-top:1px dashed var(--border); }
+
+/* catalog card — single page, inline everything (header ✎ / zones / inline server table / sticky action-bar) */
+.sec-head { display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
+.sec-count { font-size:.82rem; color:var(--text-dim); }
+
+/* header: one title + pencil; edit mode = inline fields */
+.cat-title { font-size:1.15rem; font-weight:600; display:flex; align-items:center; gap:.4rem; }
+.cat-fqdn { font-size:.9rem; color:var(--text-dim); margin-top:.15rem; }
+.cat-desc { font-size:.85rem; margin-top:.1rem; }
+.cat-head-edit .frow { margin-bottom:.45rem; }
+.cat-head-act { display:flex; gap:.5rem; justify-content:flex-end; margin-top:.2rem; }
+.icon-btn.sm { font-size:.95rem; padding:.05rem .3rem; line-height:1.2; }
+
+/* delivery group section + inline server rows */
+.srv-group { border:1px solid var(--border); border-radius:var(--radius-sm); padding:.5rem .7rem; margin:.5rem 0 .6rem; }
+.srv-group-h { display:flex; align-items:center; gap:.5rem; margin-bottom:.2rem; }
+.srv-grp-x { margin-left:auto; }
+.srv-row { display:flex; align-items:center; gap:.6rem; padding:.34rem .05rem; }
+.srv-row + .srv-row { border-top:1px solid var(--border); }
+.srv-name { flex:1 1 30%; min-width:5rem; font-weight:500; }
+.srv-ip { flex:1 1 24%; min-width:6.5rem; color:var(--text-dim); }
+.srv-auth-cell { flex:0 0 auto; }
+.srv-auth { background:var(--card-2); border:1px solid var(--border); border-radius:999px; padding:.08rem .55rem; font:inherit; font-size:.76rem; color:var(--text-dim); cursor:pointer; white-space:nowrap; }
+.srv-auth:hover { border-color:var(--accent); color:var(--text); }
+.srv-en { flex:0 0 auto; font-size:.82rem; white-space:nowrap; }
+.srv-act { flex:0 0 auto; display:flex; gap:.1rem; align-items:center; margin-left:auto; }
+.srv-row .field-input.sm { margin-bottom:0; }
+/* compact input rows: fields sized to content, buttons follow directly with spacing (no full-width IP) */
+.srv-addrow, .srv-row.editing { gap:.5rem; }
+.srv-f-name, .srv-a-name { flex:0 1 14rem; min-width:7rem; }
+.srv-f-ip, .srv-a-ip { flex:0 1 11rem; min-width:6rem; }
+.srv-addrow .srv-act, .srv-row.editing .srv-act { margin-left:0; gap:.5rem; }
+.srv-group-add { padding:.35rem .05rem 0; }
+.srv-group-add .lnk, .srv-empty { font-size:.85rem; }
+.srv-grp-issues { margin:.1rem 0 .35rem; font-size:.8rem; color:var(--warn); display:flex; flex-direction:column; gap:.1rem; }
+.srv-grp-issues .lnk { align-self:flex-start; margin-top:.15rem; }
+.srv-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.7rem; }
+.srv-none { margin:.2rem 0 .7rem; }
+.grp-inline { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; margin:.6rem 0 .2rem; }
+.grp-inline > label { font-size:.82rem; color:var(--text-dim); flex:0 0 auto; }
+.grp-newform { border:1px solid var(--border); border-radius:var(--radius-sm); padding:.7rem .8rem; margin:.6rem 0 .2rem; }
+.grp-newform .frow:last-of-type { margin-bottom:.2rem; }
+.auth-key { display:flex; justify-content:space-between; align-items:center; gap:.6rem; flex-wrap:wrap; padding:.35rem 0; border-bottom:1px solid var(--border); }
+.auth-key:last-child { border-bottom:none; }
+.action-bar { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+.ab-info { min-width:0; flex:1; }
+.ab-title { font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-mute); font-weight:600; margin-bottom:.35rem; }
+.ab-checklist { display:flex; gap:.9rem; flex-wrap:wrap; }
+.ab-ck { font-size:.85rem; color:var(--text-dim); }
+.ab-ck.ok { color:var(--ok); }
+.ab-ck.no { color:var(--text-mute); }
+.ab-hint { font-size:.8rem; color:var(--text-mute); margin-top:.4rem; }
+.ab-status { display:flex; align-items:center; gap:.5rem; }
+.ab-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+.ab-primary { min-width:9rem; }
+
+/* modal (docked overlay that keeps profile context) */
+.dm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:80; display:flex; align-items:flex-start; justify-content:center; padding:5vh 1rem; overflow-y:auto; }
+.dm-panel { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); width:min(520px,100%); max-height:90vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.4); }
+.dm-panel.wide { width:min(820px,100%); }
+.dm-head { display:flex; align-items:center; justify-content:space-between; padding:.9rem 1.1rem; border-bottom:1px solid var(--border); }
+.dm-title { font-size:1.1rem; font-weight:600; }
+.dm-body { padding:1rem 1.1rem; overflow-y:auto; }
+.dm-body.saving { opacity:.55; }   /* + inert: the form is frozen while saving */
+.dm-foot { padding:.85rem 1.1rem; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:.5rem; }
+.dm-hint { color:var(--text-dim); font-size:.85rem; margin:0 0 .6rem; }
+.dm-hint.inline { margin:0; }
+.dm-hint.dm-hint-warn { color:var(--warn); }
+.auth-why{max-width:22rem;white-space:normal;line-height:1.25;margin-top:2px;}
+
+/* checkbox pick-list (groups / zones) */
+.pick-list { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:var(--radius-sm); max-height:44vh; overflow-y:auto; }
+.pick-row { display:flex; align-items:center; gap:.6rem; padding:.5rem .7rem; border-bottom:1px solid var(--border); cursor:pointer; }
+.pick-row:last-child { border-bottom:none; }
+.pick-row:hover { background:var(--card-2); }
+.pick-main { flex:1 1 auto; font-weight:500; }
+.pick-meta { color:var(--text-dim); font-size:.82rem; display:flex; align-items:center; gap:.4rem; }
+
+/* zone selection modal — one list: .toolbar/.search/.filter + .data-table + .lbl-tag from the records page */
+.zpick-toolbar { margin:.4rem 0 .5rem; }
+.zpick-table td.c-labels .lbl-tag { margin:1px 3px 1px 0; }
+.zbulk { margin-left:auto; color:var(--text-dim); font-size:13px; white-space:nowrap; }
+.zpick-wrap { overflow:auto; }                 /* the only scroll container (see zone-picker below) */
+.zpick-table th.th-sort { cursor:pointer; user-select:none; white-space:nowrap; }
+.zpick-table th.th-sort:hover { color:var(--text); }
+.zpick-table th.th-sort.sorted { color:var(--accent); }
+.zpick-table .th-check { width:36px; text-align:center; }
+.zpick-table .th-check input { cursor:pointer; }
+.zpick-table tbody td { padding:8px 16px; }
+.zpick-msg { color:var(--text-mute); }
+/* Direct AXFR tab: the same table as the catalog zone picker (same filters and row selection) plus a switch
+   column. Geometry only; the controls are styled by tag above. */
+/* display:flex on the <td> itself pulls the cell out of table layout and the column drifts from its header.
+   An inner block holds the layout. */
+.dx-ctl-in { display:flex; gap:1.1rem; }
+.dx-table td.dx-ctl { white-space:nowrap; }
+.dx-aud { margin-left:auto; min-width:14rem; }
+
+/* "?" next to a heading: a long explanation would take space permanently but is needed once. */
+/* The wrapper is EXACTLY one line (1em) and centres the button: otherwise a 16-18px icon is taller than the
+   heading line (0.9rem) and stretches it, and on the baseline it sits below the text. The button is
+   absolutely positioned, so its size no longer affects line height. */
+.help-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center;
+             width:1em; height:1em; vertical-align:-0.12em; margin-left:.4rem; }
+.help-dot { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width:16px; height:16px; padding:0; border-radius:50%; border:1px solid var(--border);
+            background:transparent; color:var(--text-mute); font:500 10px/1 inherit; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; }
+.help-dot:hover, .help-wrap.open .help-dot { color:var(--text); border-color:var(--text-mute); }
+/* The help popup lives in <body> and is position:fixed: inside a modal or table with its own scroll it was
+   clipped and added a horizontal scrollbar. app.js computes coordinates from the "?". */
+/* ---------- Settings → Import: migration from the old BIND (js/import.js) ----------
+   A list of hundreds of rows: header, filters and the bottom action bar stay put, exactly one scroll (the
+   table's). Geometry only: controls and filters are styled by tag and class above. */
+.imp-load{max-width:46rem;}
+.imp-load .imp-load-actions{display:flex;justify-content:flex-end;margin-top:.9rem;}
+.imp-card{display:flex;flex-direction:column;max-height:calc(100vh - 230px);}
+.imp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:.6rem;}
+.imp-toolbar{margin-bottom:.5rem;}
+.imp-toolbar .search{min-width:14rem;}
+.imp-scroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--border);border-radius:8px;}
+.imp-scroll thead th{position:sticky;top:0;z-index:1;background:var(--card);}
+.imp-table td{vertical-align:top;}
+.imp-detail td{background:var(--bg-2);}
+.imp-d{display:flex;gap:.6rem;padding:.12rem 0;font-size:12.5px;}
+.imp-d span{min-width:9rem;color:var(--text-mute);}
+.imp-dact{margin-top:.5rem;}
+.imp-bar{display:flex;align-items:center;gap:.7rem;padding-top:.8rem;flex-wrap:wrap;}
+.imp-count{color:var(--text-mute);font-size:.85rem;}
+.imp-bar .btn-primary{margin-left:auto;}
+.imp-tsig{max-width:34rem;margin-top:.6rem;}
+
+/* A command in help is its own block: it's copied, not read, and gets lost in a paragraph. */
+.help-code{ display:block; margin:.45rem 0; padding:.4rem .55rem; border-radius:6px;
+            background:var(--bg); border:1px solid var(--border); color:var(--text);
+            font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.82rem;
+            white-space:pre-wrap; word-break:break-all; user-select:all; }
+.help-pop { position:fixed; z-index:10002; display:block;
+            width:min(460px, 70vw); padding:.6rem .7rem; border:1px solid var(--border-2); border-radius:8px;
+            background:var(--card-2); color:var(--text-dim); font-size:.85rem; line-height:1.45;
+            font-weight:400; text-transform:none; letter-spacing:normal; white-space:normal;
+            box-shadow:0 8px 24px rgba(0,0,0,.45); }
+.zpick-msg.pad { padding:1rem 1.1rem; }
+.zunavail { border:1px solid var(--warn); border-radius:var(--radius-sm); padding:.5rem .7rem; margin:.3rem 0 .6rem; }
+.zunavail-row { display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.2rem 0; }
+
+/* large zone selection modal: one scroll (the table), sticky table header */
+/* BIND configuration is CONFIG to copy, not a caption: a small modal forced scrolling each block separately.
+   The panel is wide and tall with ONE scroll for the whole area; blocks have no height limit, otherwise we
+   get nested scrolls. */
+.dm-panel.cfg-panel { width:min(1100px, calc(100vw - 48px)); height:min(85vh, calc(100vh - 48px)); max-height:none; }
+.dm-panel.cfg-panel .dm-body { flex:1 1 auto; min-height:0; overflow-y:auto; }
+.dm-panel.cfg-panel .cat-manual-cfg { max-height:none; }
+.dm-panel.zone-picker { width:min(1180px, calc(100vw - 48px)); height:min(900px, calc(100vh - 48px)); max-height:none; }
+.dm-panel.zone-picker .dm-body { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.dm-panel.zone-picker .zpick-wrap { flex:1 1 auto; min-height:0; max-height:none; }
+.dm-panel.zone-picker .zpick-table thead th { position:sticky; top:0; z-index:1; background:var(--card); }
+@media (max-width: 900px) {
+    .dm-overlay:has(.zone-picker) { padding:0; }
+    .dm-panel.zone-picker { width:100vw; height:100vh; border-radius:0; }
+}
+
+/* --- Settings → Users & access --- */
+.ua-sect { font-weight:600; font-size:13px; margin:1.1rem 0 .4rem; padding-top:.7rem; border-top:1px solid var(--border); color:var(--text); }
+.ua-list { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin-bottom:.5rem; }
+.ua-chip { display:inline-flex; align-items:center; gap:.3rem; background:var(--bg-2); border:1px solid var(--border); border-radius:6px; padding:.2rem .5rem; font-size:12px; }
+.ua-chip.ua-eff { background:transparent; border-style:dashed; color:var(--text-dim); }
+.ua-chip .ua-x { color:var(--danger); text-decoration:none; font-weight:600; line-height:1; }
+.ua-chip .ua-x:hover { filter:brightness(1.15); }
+.ua-add { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:.2rem 0 .3rem; }
+
+/* --- Users & access: near-full-screen centred modal --- */
+#ua-modal { position:fixed; inset:0; z-index:9985; display:flex; align-items:center; justify-content:center; padding:.75rem; }
+#ua-modal .ua-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.55); }
+.ua-modal-box { position:relative; width:94vw; height:calc(100vh - 1.5rem); max-width:1760px;
+  /* full height minus the wrapper margins, otherwise the window hits the edge and an extra scroll appears */ background:var(--card);
+  border:1px solid var(--border); border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.45);
+  display:flex; flex-direction:column; overflow:hidden; animation:ua-pop .13s ease-out; }
+@keyframes ua-pop { from { transform:scale(.98); opacity:.7; } to { transform:none; opacity:1; } }
+/* The window width is always the same, but stretching to full HEIGHT is only needed where there is an inner
+   scroll (Access tab with the zones table). A person card sizes to content. */
+.ua-modal-box.ua-box-fit { height:auto; max-height:calc(100vh - 1.5rem); }
+.ua-head { flex:0 0 auto; display:flex; align-items:center; gap:1rem; padding:1rem 1.5rem; border-bottom:1px solid var(--border); }
+.ua-head-main { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+.ua-head-main h2 { margin:0; font-size:20px; font-weight:600; }
+.ua-head .modal-x { margin-left:auto; }
+.ua-tabs { flex:0 0 auto; display:flex; align-items:center; gap:.4rem; padding:.4rem 1.5rem 0; border-bottom:1px solid var(--border); }
+.ua-tabsave { margin-left:auto; display:flex; align-items:center; gap:.5rem; padding-bottom:.35rem; }
+.ua-tab { background:none; border:none; border-bottom:2px solid transparent; color:var(--text-dim); padding:.5rem .8rem; font-size:14px; cursor:pointer; }
+.ua-tab:hover { color:var(--text); }
+.ua-tab.active { color:var(--text); border-bottom-color:var(--accent); }
+.ua-body { flex:1 1 auto; overflow-y:auto; padding:1.3rem 1.5rem 2rem; max-width:1000px; width:100%; }
+.ua-body .ua-sect:first-child { margin-top:0; padding-top:0; border-top:none; }
+.ua-cols { display:grid; grid-template-columns:1fr 1fr; gap:2rem; align-items:start; }
+@media (max-width:820px) { .ua-cols { grid-template-columns:1fr; } }
+/* Person card is a grid of BLOCKS: each topic has its own framed, titled block, and they fill the window width. */
+/* Width is limited by CONTENT, not the window: the window is wide for the Access tab's zones table, but the
+   two form columns don't stretch across it; they stay centred. */
+.ua-body-blocks { max-width:1180px; margin-left:auto; margin-right:auto; }
+.ua-blocks { display:grid; gap:1rem; grid-template-columns:repeat(2, minmax(0, 1fr)); align-items:start; }
+@media (max-width:860px)  { .ua-blocks { grid-template-columns:1fr; } }
+.ua-block { background:var(--card-2); border:1px solid var(--border); border-radius:10px; padding:.9rem 1.1rem; }
+.ua-block-wide { grid-column:1 / -1; }
+/* Sub-heading INSIDE a block: certificates are part of sign-in and don't need their own card. */
+.ua-block-sub { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-mute);
+  margin:.9rem 0 .5rem; padding-top:.8rem; border-top:1px solid var(--border); }
+.ua-block-hd { font-weight:600; font-size:13px; color:var(--text); margin:0 0 .7rem; }
+/* Rows inside a block are already separated by rules; the top and bottom ones are redundant (the block border does that). */
+.ua-block .ua-secrow:first-of-type { padding-top:0; }
+.ua-block .ua-secrow:last-child { border-bottom:none; padding-bottom:0; }
+.ua-block .ua-sesslist { border:none; padding:0; margin-top:0; }
+.ua-block .ua-line:last-child { border-bottom:none; }
+/* A row may have two actions (Reset + Turn off): kept together at the right edge. */
+.ua-secacts { margin-left:auto; display:flex; gap:.4rem; flex:0 0 auto; }
+.ua-line { display:flex; align-items:center; gap:.6rem; padding:.35rem .1rem; border-bottom:1px solid var(--border); font-size:14px; }
+.ua-inline { display:flex; align-items:center; gap:.5rem; margin:.6rem 0; flex-wrap:wrap; }
+.ua-actions-row { display:flex; align-items:center; gap:.6rem; margin-top:1.2rem; padding-top:1rem; border-top:1px solid var(--border); }
+.ua-secrow { display:flex; align-items:center; gap:1rem; padding:.7rem 0; border-bottom:1px solid var(--border); }
+.ua-secrow > button { margin-left:auto; }
+.ua-perm-group { margin-bottom:.9rem; }
+.ua-perm-grouphd { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-mute); margin:.3rem 0; }
+.ua-perm { display:flex; align-items:baseline; gap:.6rem; padding:.28rem .1rem; font-size:14px; flex-wrap:wrap; }
+.ua-perm > span:first-child { flex:1 1 auto; min-width:0; }
+.ua-perm input[type=checkbox] + span { flex:1 1 auto; min-width:0; }
+.ua-perm input[type=checkbox]:disabled + span { color:var(--text-dim); }
+.ua-perm-meta { font-size:12px; display:inline-flex; align-items:center; gap:.4rem; min-width:0; flex-wrap:wrap; }
+.ua-perm-meta > span { overflow-wrap:anywhere; }
+.ua-perm-meta .ua-x { color:var(--danger); text-decoration:none; font-weight:600; white-space:nowrap; }
+.ua-perm-meta .ua-x:hover { filter:brightness(1.15); }
+.ua-ok { color:var(--accent); font-size:13px; }
+.ua-dcaps { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.3rem; margin:.6rem 0; }
+.ua-zline { display:flex; align-items:center; gap:.6rem; padding:.4rem 0; font-size:14px; }
+.ua-zlist { max-height:280px; overflow-y:auto; margin:.3rem 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.1rem .6rem; border:1px solid var(--border); border-radius:8px; padding:.5rem; }
+.ua-zitem { display:flex; align-items:center; gap:.4rem; font-size:13px; padding:.15rem 0; }
+.ua-eff { border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-top:.4rem; }
+.ua-effrow { display:flex; align-items:center; gap:.6rem; padding:.4rem .7rem; border-bottom:1px solid var(--border); font-size:13px; }
+.ua-effrow:last-child { border-bottom:none; }
+.ua-sesslist { border:1px solid var(--border); border-radius:8px; padding:.3rem .6rem; margin-top:.3rem; }
+.ua-row { cursor:pointer; }
+.ua-row:hover { background:var(--card-2); }
+/* Access tab: the body does NOT scroll as a whole; only the zones table scrolls (toolbar/counters/header pinned). */
+.ua-body-wide { max-width:none; overflow:hidden; display:flex; flex-direction:column; }
+/* Access: two columns */
+.ua-access { display:grid; grid-template-columns:400px 1fr; gap:2rem; align-items:stretch; flex:1 1 auto; min-height:0; }
+@media (max-width:900px) { .ua-access { grid-template-columns:1fr; } }
+.ua-access-l { min-height:0; overflow-y:auto; overflow-x:hidden; padding-right:.4rem; }
+.ua-access-r { display:flex; flex-direction:column; min-height:0; }
+.ua-access-r #ua-ztoolbar { flex:0 0 auto; }
+#ua-zrows { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+/* Counters + bulk on ONE line (bulk on the right), pinned above the table. */
+.ua-zone-status { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; margin-bottom:.5rem; }
+.ua-zone-status .ua-summary { margin-bottom:0; }
+/* The table's own scroll + sticky header. */
+.ua-zone-scroll { flex:1 1 auto; min-height:0; overflow:auto; border:1px solid var(--border); border-radius:var(--radius); background:var(--card); }
+.ua-zone-scroll > table { margin:0; }
+.ua-zone-scroll thead th { position:sticky; top:0; z-index:2; background:var(--bg-2); }
+.ua-gp { width:100%; }
+.ua-gp .ua-gp-hd td { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-mute); padding-top:.7rem; background:transparent; border:none; }
+.ua-gp td { font-size:13px; }
+.ua-src { color:var(--text); font-size:13px; }
+.ua-zdefrow { display:flex; align-items:center; gap:.6rem; padding:.5rem 0 .7rem; border-bottom:1px solid var(--border); margin-bottom:.6rem; font-size:14px; }
+.ua-zdefrow > span:first-child { min-width:8rem; }
+.ua-summary { display:flex; align-items:center; gap:.4rem; margin-bottom:.6rem; }
+.ua-pend { color:var(--warn); font-size:12px; }
+.ua-toolbar { display:grid; grid-template-columns:minmax(240px,1fr) 150px 170px 190px; gap:.5rem; align-items:center; margin-bottom:.6rem; }
+.ua-toolbar > * { width:100%; min-width:0; }
+.ua-toolbar .field-input { height:38px; margin:0; box-sizing:border-box; }
+.ua-toolbar .ui-select { width:100%; }
+.ua-toolbar .ui-select-trigger { height:38px; box-sizing:border-box; display:flex; align-items:center; }
+@media (max-width:820px) { .ua-toolbar { grid-template-columns:1fr 1fr; } }
+.ua-grps { display:flex; flex-direction:column; gap:.2rem; margin-bottom:.4rem; }
+.ua-grp { display:flex; align-items:flex-start; gap:.5rem; padding:.4rem .5rem; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:14px; }
+.ua-grp input { margin-top:.15rem; }
+.ua-fsel, .ua-ovsel, select.ua-fsel { background:var(--bg-2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:.3rem .45rem; font-size:13px; outline:none; }
+.ua-fsel:focus, .ua-ovsel:focus { border-color:var(--accent-dim); }
+.ua-bulk { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; font-size:13px; margin-left:auto; }
+.ua-ztbl th { cursor:default; white-space:nowrap; }
+.ua-ztbl th[data-ua-sort] { cursor:pointer; }
+.ua-ztbl th[data-ua-sort]:hover { color:var(--text); }
+.ua-ztbl td { font-size:13px; vertical-align:middle; }
+.ua-ztbl tr.ua-changed td { background:rgba(217,164,65,.10); }
+.ua-head-main h2 { display:inline; }
+.ua-badge { display:inline-block; background:var(--bg-2); border:1px solid var(--border); border-radius:6px; padding:.1rem .45rem; font-size:12px; color:var(--text); text-decoration:none; }
+a.ua-badge:hover { border-color:var(--accent-dim); color:var(--text); }
+.ua-badge-p { background:transparent; border-style:dashed; color:var(--text-dim); }
+@media (max-width:900px) { .ua-modal-box { width:100vw; height:100vh; border-radius:0; } }
+
+/* ── Audit log: expandable rows ── */
+.audit-row { cursor:pointer; }
+.audit-row:hover td { background:var(--bg-2); }
+.audit-row.expanded td { background:var(--bg-2); }
+.audit-detail-row > td { background:var(--bg-2); padding:0; }
+.audit-detail { padding:.7rem 1rem; border-left:2px solid var(--accent-dim); }
+.audit-meta { display:flex; flex-wrap:wrap; gap:.35rem .5rem; font-size:12.5px; align-items:center; }
+.audit-sep { color:var(--border-2); }
+.audit-diff { display:flex; flex-wrap:wrap; gap:1rem; margin-top:.6rem; }
+.audit-diff > div { min-width:220px; flex:1; }
+.audit-json { margin:0; padding:.5rem .6rem; background:var(--card); border:1px solid var(--border); border-radius:6px;
+              font-size:12px; line-height:1.4; max-height:16rem; overflow:auto; white-space:pre; }
+
+/* "This node is not active" bar (HA pair). Rendered right under the top bar on every node that isn't ACTIVE:
+   the write gate rejects edits there, and the user must know before pressing Save. */
+.node-banner { padding:.55rem 1.25rem; background:color-mix(in srgb,var(--warn) 14%,transparent);
+    border-bottom:1px solid color-mix(in srgb,var(--warn) 40%,transparent); color:var(--text); font-size:.85rem; }
+.node-banner a { color:var(--accent); }
+
+/* Field in a dialog: label ABOVE, field full width. The dialog is narrow (26rem) and a "label left, field
+   right" layout doesn't fit: flex squeezes both and the window looks improvised. */
+.dlg-field{display:block;margin:0 0 .9rem;}
+.dlg-field > label{display:block;margin:0 0 .35rem;font-size:.82rem;color:var(--text-mute);}
+.dlg-field > input{display:block;width:100%;box-sizing:border-box;}
+/* Promote on a secondary zone: below the source panel, where the upstream and transfer state are visible. */
+.slave-act{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);}
+
+/* ---------- Account: own settings ----------
+   Geometry only. Colours are theme variables; no custom control here, the shared select is used. */
+.acct-who{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:-.4rem 0 1rem;font-size:13px;color:var(--text-dim);}
+.acct-who-name{font-size:15px;font-weight:600;color:var(--text);}
+.acct-who-sep{color:var(--text-mute);}
+/* Password and second factor side by side, each taking exactly its half, not the full screen width.
+   Narrow screen: one column. */
+.acct-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));gap:16px;align-items:start;
+  margin-bottom:16px;}   /* the grid is spaced from the next block like a card would be */
+.acct-card{margin-bottom:16px;}
+.acct-grid .acct-card{margin-bottom:0;}   /* card sized to content: an empty bottom is wasted space */
+.acct-title{font-size:14px;font-weight:600;margin-bottom:.9rem;}
+.acct-row{display:flex;align-items:center;gap:.8rem;margin-bottom:.55rem;}
+.acct-key{flex:0 0 9rem;color:var(--text-dim);font-size:13px;}
+/* Fields don't stretch across the card: the password row is no longer than a password. */
+.acct-row .field-input{margin-bottom:0;flex:1;max-width:17rem;}
+.acct-row .ui-select{flex:1;max-width:17rem;}
+.acct-form .zform-note{margin-left:9.8rem;}
+.acct-actions{display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap;}
+.acct-sessions{width:100%;}
+.acct-ua{max-width:20rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acct-qr{display:flex;justify-content:center;margin:.8rem 0;}
+.acct-qr img{width:180px;height:180px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:8px;} /* literal-color: a QR code needs a white background to scan */
+.acct-secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;letter-spacing:.05em;
+  background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:.5rem .7rem;margin-bottom:.9rem;
+  word-break:break-all;}
+.acct-codes{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.9;
+  background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;margin:.6rem 0;}
+@media (max-width:900px){ .acct-key{flex-basis:7.5rem;} .acct-form .zform-note{margin-left:0;} }
+
+/* ── NS Pulse: rule builder ──
+   Block geometry and states. Colours are palette tokens only, so a new theme picks the builder up by itself. */
+/* The builder is a working form, not a canvas: on a wide monitor a 1900 px row makes the eye travel from
+   "Publish" to "after" through emptiness. A centred column, nearly full width on a laptop.
+   Tab tables aren't narrowed by this: they need the width. */
+.pl-builder{width:min(1200px,100%);margin:0 auto;}
+.pl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.2rem;}
+.pl-crumb{font-size:12px;color:var(--text-mute);}
+.pl-title{font-size:20px;font-weight:600;margin:.15rem 0 0;}
+.pl-hint{font-size:12px;color:var(--text-mute);margin:.5rem 0 .8rem;}
+.pl-branches{display:flex;flex-direction:column;gap:.7rem;}
+.pl-branch{border:1px solid var(--border);border-radius:10px;background:var(--card-2);padding:.8rem 1rem;}
+/* Selected branch: by border. "Conditions met but overridden": only a mark in the header; the same look for
+   the effective and the overridden branch would lie about what will happen. */
+.pl-branch.is-winner{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card-2));}
+.pl-branch.is-match:not(.is-winner){border-color:color-mix(in srgb,var(--ok) 35%,var(--border));}
+/* An overridden branch is NOT dimmed: dimming reads as "not editable", but it can and must be edited, or it
+   could never be un-overridden. That it isn't consulted is said in words in the header. Dimming is only used
+   where an action really is unavailable. */
+.pl-branch.is-dragging{opacity:.4;}
+.pl-branch-head{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem;font-size:14px;}
+.pl-grip{cursor:grab;color:var(--text-mute);user-select:none;}
+.pl-lock{color:var(--text-mute);}
+.pl-num{display:inline-flex;align-items:center;justify-content:center;min-width:1.4rem;height:1.4rem;
+  border-radius:6px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);
+  font-size:12px;font-weight:600;}
+.pl-verdict{font-size:12px;color:var(--text-mute);}
+.pl-v-true{color:var(--ok);}
+.pl-v-unknown{color:var(--warn);}
+.pl-head-act{margin-left:auto;display:flex;gap:.2rem;}
+.pl-match{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem;font-size:13px;}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.seg-btn{background:none;border:none;color:var(--text-dim);font:inherit;font-size:12px;padding:.3rem .7rem;cursor:pointer;}
+.seg-btn+.seg-btn{border-left:1px solid var(--border);}
+.seg-btn:hover{color:var(--text);background:var(--card);}
+.seg-btn.active{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent);}
+.pl-conds{display:flex;flex-direction:column;gap:.35rem;}
+.pl-cond{display:flex;align-items:center;gap:.6rem;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:.4rem .6rem;font-size:13px;}
+.pl-cond-what{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;}
+.pl-cond-what:hover{color:var(--accent);}
+.pl-state{border:1px solid var(--border);border-radius:999px;background:none;font:inherit;font-size:12px;
+  padding:.1rem .6rem;cursor:pointer;}
+.pl-state.bad{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--border));}
+.pl-state.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--border));}
+/* The check's answer RIGHT NOW, as a soft pill next to the condition, so it reads as a separate value rather
+   than a note on the condition. No status colour: colour here belongs to the condition on the left. */
+.pl-now{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:999px;
+  border:1px solid var(--border);background:var(--card-2);
+  font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.pl-x{flex:0 0 auto;}
+.pl-empty{font-size:12px;color:var(--text-mute);padding:.3rem .1rem;}
+.pl-add-cond{margin:.5rem 0 .2rem;}
+.pl-then{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;font-size:13px;
+  border-top:1px solid var(--border);margin-top:.6rem;padding-top:.7rem;}
+.pl-then .field-input{margin-bottom:0;}
+.pl-ip{width:11rem;}
+.pl-sec{width:4.5rem;}
+.pl-add{width:100%;margin:.7rem 0;border-style:dashed;}
+.pl-default{margin-top:0;}
+.pl-note{font-size:12px;color:var(--text-mute);margin:.6rem 0 0;}
+.pl-preview{border:1px solid var(--border);border-radius:10px;background:var(--card-2);padding:.8rem 1rem;margin-top:1rem;}
+.pl-prow{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.3rem 0;font-size:13px;}
+.pl-outcome{margin-top:.7rem;padding:.6rem .8rem;border-radius:8px;font-size:13px;
+  background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);}
+@media (max-width:720px){ .pl-prow{flex-direction:column;align-items:flex-start;gap:.3rem;} }
+/* State history as segment strips. Colours are THE SAME as states everywhere in the panel: green answers,
+   yellow with caveats, red doesn't answer, grey unknown. Gaps get a separate "not measured" shade: a hole
+   must not read as "all good". */
+.pl-hist{padding:.2rem .8rem .8rem;}
+.pl-hrow{padding:.5rem 0;border-top:1px solid var(--border);}
+.pl-hrow:first-child{border-top:none;}
+.pl-hname{display:block;width:100%;text-align:left;background:none;border:none;padding:0 0 .3rem;
+  font:inherit;font-size:13px;color:inherit;cursor:pointer;}
+.pl-hname:hover{color:var(--accent);}
+.pl-hchev{display:inline-block;width:1rem;color:var(--text-mute);}
+.pl-htrack{position:relative;}
+/* The strip is SEPARATE bars, like on status pages: a solid fill reads as a big coloured blob, bars read as
+   data, and a bar is easier to hover than a one-minute segment. Decent height: it's a hover target. */
+.pl-bar{display:flex;gap:2px;height:22px;align-items:stretch;}
+.pl-tick{flex:1 1 0;min-width:2px;border-radius:2px;background:var(--border-2);}
+/* Colour comes from the theme but is muted towards the panel background: at full strength it fights the state
+   pills nearby and the theme itself (muddy on light, too bright on dark). */
+.pl-tick.st-healthy{background:color-mix(in srgb,var(--ok) 72%,var(--panel));}
+.pl-tick.st-degraded{background:color-mix(in srgb,var(--warn) 72%,var(--panel));}
+.pl-tick.st-down{background:color-mix(in srgb,var(--danger) 72%,var(--panel));}
+.pl-tick.st-unknown{background:color-mix(in srgb,var(--border-2) 70%,var(--panel));}
+/* States of the AGENT itself. "Silent" is a warning, "disabled" is neutral: it's a deliberate human action,
+   and an alarm colour would scold for a setting. */
+.pl-tick.st-online{background:color-mix(in srgb,var(--ok) 72%,var(--panel));}
+.pl-tick.st-silent{background:color-mix(in srgb,var(--warn) 72%,var(--panel));}
+.pl-tick.st-disabled{background:color-mix(in srgb,var(--border-2) 55%,var(--panel));}
+/* The strip INSIDE A CONDITION shows the condition's outcome, not the check state, with the same words and
+   colours as the branch verdict above: met, not met, undetermined. */
+/* A met condition uses the accent, not green: "met" doesn't mean "good". For a "when unavailable" condition
+   being met IS the outage, and green there would read backwards. */
+.pl-tick.st-met{background:color-mix(in srgb,var(--accent) 78%,var(--panel));}
+.pl-tick.st-not{background:color-mix(in srgb,var(--border-2) 70%,var(--panel));}
+.pl-tick.st-undecided{background:color-mix(in srgb,var(--warn) 72%,var(--panel));}
+/* "Not observed" is absence, not a colour: an empty cell with a thin border. A fill would match the
+   highlighted table row and vanish, so emptiness would mean "all good" exactly where people look. */
+.pl-tick.st-none{background:transparent;box-shadow:inset 0 0 0 1px var(--border-2);}
+/* A bar that covered several states has a darker top edge: shows it's averaged. */
+.pl-tick.is-mixed{box-shadow:inset 0 2px 0 rgba(0,0,0,.28);}
+.pl-tick:hover{filter:brightness(1.3);}
+/* Switch marker on top of the strip: observation and its consequence in one place. */
+.pl-mark{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--text);border-radius:2px;
+  box-shadow:0 0 0 1px var(--panel);cursor:pointer;}
+.pl-mark:hover{width:5px;}
+.pl-hsub{display:flex;align-items:center;gap:.6rem;margin-top:.3rem;padding-left:1rem;}
+.pl-hname2{flex:0 0 9rem;font-size:12px;color:var(--text-dim);}
+.pl-hsub .pl-htrack{flex:1 1 auto;}
+.pl-hsub .pl-bar{height:14px;gap:2px;}
+.pl-hscale{display:flex;justify-content:space-between;font-size:11px;color:var(--text-mute);margin-top:.6rem;}
+/* Overview strip in the checks table: the same history, over 24 h and one row tall. */
+.pl-mini{min-width:9rem;}
+.pl-mini .pl-bar{height:14px;gap:1px;}
+/* The same strip in a condition row: "what this check saw over 24 h" sits next to the condition.
+   Wider than first seemed enough: at nine rem a couple of minutes' outage over a day became a few pixels,
+   i.e. nothing. A branch may have several conditions, each on its own row. */
+.pl-strip{display:inline-block;width:20rem;flex:0 1 20rem;min-width:9rem;vertical-align:middle;}
+.pl-strip .pl-bar{height:16px;gap:1px;}
+@media (max-width:820px){ .pl-strip{display:none;} }
+.pl-hlegend{display:flex;gap:.8rem;align-items:center;margin-left:.8rem;font-size:11px;color:var(--text-mute);}
+.pl-lg{display:inline-flex;align-items:center;gap:.3rem;}
+.pl-lg i{width:6px;height:14px;border-radius:2px;}
+@media (max-width:820px){ .pl-hlegend{flex-wrap:wrap;} .pl-hname2{flex-basis:6rem;} }
+/* NS Pulse page: section cards of the Testers tab and fields in modals. */
+.pl-card{border:1px solid var(--border);border-radius:10px;background:var(--card);margin-bottom:1.1rem;}
+.pl-card .pl-note{margin:.6rem .7rem;}
+/* Filter above the card table: the same strip as in the clone windows — one action, one look. */
+.pl-card-bar{padding:.7rem .8rem 0;}
+.pl-card-bar .pl-pick-bar{margin-bottom:.7rem;}
+.pl-card .table-wrap{border:none;border-radius:0 0 10px 10px;}
+.dlg-row{display:grid;grid-template-columns:9.5rem 1fr;align-items:center;gap:.5rem;margin-bottom:.5rem;}
+.dlg-lbl{font-size:12px;color:var(--text-mute);}
+.dlg-row .field-input{margin-bottom:0;}
+/* "?" next to a label: forms don't carry explanations, but where one is unavoidable it must be noticeable and
+   unobtrusive. Text lives in data-tip, the same tooltip as everywhere in the panel. */
+/* Branch value set: as many rows as values, as many fields as the record type has. */
+.pl-vals{display:flex;flex-direction:column;gap:.35rem;flex:1 1 auto;min-width:0;}
+.pl-val{display:flex;align-items:center;gap:.4rem;}
+.pl-val .field-input{margin-bottom:0;}
+.pl-prio{width:4.5rem;}
+.pl-val .pl-ip{flex:1 1 auto;min-width:0;}
+.pl-hold{display:flex;align-items:center;gap:.5rem;}
+.pl-primary{width:100%;}
+/* Value set shown READ-ONLY: field labels small and muted, values monospace, the same language as the
+   Parameters column on the records page. No colour: it belongs to states. */
+.pl-set{display:flex;flex-direction:column;gap:.25rem;flex:1 1 auto;min-width:0;}
+.pl-setline{display:flex;align-items:center;flex-wrap:wrap;gap:.3rem .7rem;font-size:13px;
+  word-break:break-all;}
+/* Field label: a soft pill, not a shout; it explains the neighbouring number rather than competing with it.
+   No status colours on purpose: colour in the panel belongs to states. */
+.pl-set-k{padding:.05rem .4rem;border-radius:6px;background:var(--card-2);border:1px solid var(--border);
+  font-size:11px;color:var(--text-mute);margin-right:.3rem;}
+.pl-set-v{font-weight:500;}
+/* Configured but nobody to switch: a warning, not an error; fixed by starting the daemon. */
+.pl-warn{margin:0 0 .8rem;padding:.6rem .8rem;border-radius:8px;font-size:13px;color:var(--warn);
+  border:1px solid color-mix(in srgb,var(--warn) 35%,var(--border));
+  background:color-mix(in srgb,var(--warn) 10%,transparent);}
+.pl-setrow{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;}
+.pl-out{display:inline-flex;align-items:baseline;gap:.4rem;}
+.pl-out .pl-set{display:inline-flex;flex-direction:row;flex-wrap:wrap;gap:.15rem .7rem;}
+.pl-q{display:inline-flex;align-items:center;justify-content:center;width:1.05rem;height:1.05rem;
+  border:1px solid var(--border);border-radius:999px;font-size:.7rem;color:var(--text-mute);
+  vertical-align:middle;}
+.pl-q:hover{color:var(--text);border-color:var(--text-mute);}
+.pl-picklist{display:flex;flex-wrap:wrap;gap:.35rem .9rem;}
+.pl-pick{display:inline-flex;align-items:center;gap:.35rem;font-size:13px;color:var(--text);}
+.pl-token{background:var(--card-2);border:1px solid var(--border);border-radius:8px;padding:.6rem .7rem;
+  font-size:12px;word-break:break-all;white-space:pre-wrap;margin:.5rem 0 0;}
+.pl-conf-act{display:flex;gap:.5rem;margin-top:.5rem;}
+.pl-preview .pl-head-act{margin-left:auto;}
+/* Picking a rule/record to clone: search on top, list on the left, the selection on the right.
+   Reading someone else's setting before it overwrites yours is mandatory. */
+.pl-pick-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem;}
+.pl-pick-bar .field-input{margin-bottom:0;}
+.pl-pick-bar .pl-pick-q{flex:1 1 auto;}
+.pl-pick-bar .ui-select{min-width:13rem;}
+.pl-pick-list{max-height:22rem;overflow:auto;border:1px solid var(--border);border-radius:10px;}
+.pl-pick-list table{width:100%;border-collapse:collapse;font-size:13px;}
+.pl-pick-list th{position:sticky;top:0;background:var(--card-2);text-align:left;font-weight:600;
+  font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mute);padding:.5rem .7rem;}
+.pl-pick-list td{padding:.45rem .7rem;border-top:1px solid var(--border);vertical-align:middle;}
+.pl-pick-list td,.pl-pick-list th{white-space:nowrap;}
+.pl-pick-list tr.is-picked>td{background:color-mix(in srgb,var(--accent) 12%,transparent);}
+.pl-pick-list label{display:block;cursor:pointer;}
+.pl-pick-prev{border:1px solid var(--border);border-radius:10px;background:var(--card-2);padding:.7rem .8rem;
+  margin-top:.7rem;max-height:15rem;overflow:auto;font-size:13px;}
+.pl-pick-prev h4{margin:.6rem 0 .2rem;font-size:12px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--text-mute);}
+.pl-pick-prev h4:first-child{margin-top:0;}
+.pl-pick-prev ul{margin:.1rem 0 .3rem;padding-left:1.1rem;}
+.pl-pick-none{color:var(--text-mute);padding:.8rem;text-align:center;}
+.pl-pick-over{display:flex;align-items:center;gap:.45rem;margin-top:.6rem;font-size:13px;cursor:pointer;}
+@media (max-width:820px){ .pl-pick-bar{flex-wrap:wrap;} }
+/* Rule condition: ONE check and any number of observers. Two lists side by side (check and agents) because
+   they're chosen together: the observer set depends on the selected check. */
+.pl-ce{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.pl-ce-col h4{margin:0 0 .5rem;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mute);}
+.pl-ce-list{max-height:20rem;overflow:auto;border:1px solid var(--border);border-radius:10px;margin:.5rem 0;}
+.pl-ce-table{max-height:22rem;margin:.5rem 0;}
+.pl-ce-table tr.is-picked>td{background:color-mix(in srgb,var(--accent) 12%,transparent);}
+.pl-ce-table td label{display:flex;align-items:center;gap:.4rem;}
+/* Adding a check is the last row of the same list; editing is the same row with fields instead of text.
+   Neither changes row height: fields in a table are one text line tall (see controls). */
+.pl-ce-table tr.is-new>td{background:var(--card-2);}
+.pl-ce-table tr.is-editing>td{background:color-mix(in srgb,var(--accent) 8%,transparent);}
+/* Address and port are one value ("where we knock"), so one cell. The port is narrow: no reason to give it
+   half the column. */
+.pl-ce-target{display:flex;gap:.3rem;align-items:center;flex-wrap:nowrap;}
+.pl-ce-target input{min-width:0;}
+.pl-ce-target input:first-child{min-width:6rem;}
+.pl-ce-target input:last-child{flex:0 0 3.6rem;}
+/* The "run by" caption can be long (three groups plus individuals) but must not widen neighbouring columns:
+   a table row is shared by all. */
+.pl-ce-table td:nth-child(4){max-width:13rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pl-ce-table .btn.sm{padding:.1rem .5rem;font-size:12px;}
+/* A check's assignment is edited in its own row: group checkboxes in the cell, narrow, no second block. */
+.gms-sep{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mute);
+  padding:.4rem .3rem .2rem;border-top:1px solid var(--border);margin-top:.3rem;}
+.gms-opt.is-off{color:var(--text-mute);}
+/* Who the condition listens to is a tree: group, its agents below. A checked group means "and whoever joins
+   it", so its agents are shown checked but disabled: a separate checkbox would add nothing. */
+.pl-ce-grp + .pl-ce-grp{border-top:1px solid var(--border);}
+.pl-ce-head{background:var(--card-2);}
+.pl-ce-head .pl-ce-name{font-weight:600;}
+.pl-ce-head .mini{margin-left:auto;font-size:11px;}
+.pl-ce-leaf{padding-left:1.6rem;}
+.pl-ce-row.is-off{color:var(--text-mute);}
+.pl-ce-table .icon-btn{width:1.3rem;height:1.3rem;}
+.pl-ce-row{display:flex;align-items:center;gap:.55rem;padding:.4rem .6rem;font-size:13px;cursor:pointer;
+  border-top:1px solid var(--border);}
+.pl-ce-row:first-child{border-top:none;}
+.pl-ce-row.is-picked{background:color-mix(in srgb,var(--accent) 12%,transparent);}
+.pl-ce-name{font-weight:500;flex:0 0 auto;}
+.pl-ce-row .mono{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pl-ce-row .text-mute{font-size:12px;}
+.pl-ce-act{display:flex;gap:.4rem;margin:.4rem 0;}
+.pl-ce-groups{border-top:1px solid var(--border);margin-top:.7rem;padding-top:.6rem;}
+.pl-ce-groups .pl-picklist{margin-top:.4rem;}
+.pl-ce-foot{border-top:1px solid var(--border);margin-top:1rem;padding-top:.8rem;
+  display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1.4rem;}
+.pl-ce-fld{display:flex;align-items:center;gap:.5rem;}
+.pl-ce-fld .ui-select{min-width:11rem;}
+.pl-ce-fld .field-input{margin-bottom:0;}
+.pl-ce-sum{flex:1 1 100%;font-size:13px;color:var(--text-dim);}
+/* Server rejection and an unfinished condition are shown here, at the button. The shared alert won't do in
+   this window: it's drawn on the same layer and would replace it. */
+.pl-ce-err{flex:1 1 100%;font-size:13px;color:var(--danger);}
+.pl-ce-hint{flex:1 1 100%;font-size:12px;color:var(--text-mute);}
+/* Saving the assignment is in ITS OWN section, not a third button at the bottom, so it's clear what it applies to. */
+.pl-ce-save{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;margin-top:.6rem;}
+@media (max-width:820px){ .pl-ce{grid-template-columns:1fr;} }
+/* Per-observer trial: one chip per agent. Twenty switches in a column are unreadable; twenty chips in a row
+   are a normal set, and the odd one out is obvious. */
+.pl-chips{display:flex;flex-wrap:wrap;gap:.3rem;padding:0 0 .5rem 0;}
+.pl-chip{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);border-radius:999px;
+  background:var(--card);font:inherit;font-size:11px;padding:.12rem .55rem;color:var(--text-dim);cursor:pointer;}
+.pl-chip:hover{border-color:var(--text-mute);}
+.pl-chip-st{color:var(--text-mute);}
+.pl-chip.pl-st-up{border-color:color-mix(in srgb,var(--ok) 45%,var(--border));}
+.pl-chip.pl-st-degraded{border-color:color-mix(in srgb,var(--warn) 45%,var(--border));}
+.pl-chip.pl-st-down{border-color:color-mix(in srgb,var(--danger) 45%,var(--border));}
+/* The tried state is dashed: an experiment, not an observation, and the two must not be confused. */
+.pl-chip.is-tried{border-style:dashed;background:color-mix(in srgb,var(--accent) 12%,transparent);}
+@media (max-width:720px){ .dlg-row{grid-template-columns:1fr;} }
+/* ---------- Dynamic updates: shared form (js/dynamic.js), geometry only ---------- */
+.dyn-key{display:flex;gap:.5rem;align-items:center;margin-bottom:.4rem;}
+.dyn-key .field-input{flex:1 1 auto;min-width:0;}
+.dyn-key .ui-select{flex:0 0 11rem;}
+.dnssec-card{max-width:56rem;}
+.dnssec-keys{margin-bottom:1rem;}
+.dnssec-keys td.right .btn{margin-left:.3rem;}
+.dnssec-ds{display:flex;gap:.5rem;align-items:center;margin-bottom:.3rem;}
+.dnssec-ds code{word-break:break-all;flex:1 1 auto;}
+.dnssec-add{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem;}
+.dnssec-add .ui-select{flex:0 0 10rem;}
+#dk-imp{display:grid;gap:.4rem;}
+#dk-imp[hidden]{display:none;}
+.dyn-prof{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;}
+.dyn-prof .ui-select{min-width:14rem;}
+.dyn-cidrs{resize:vertical;}
+.dyn-saveas{margin-right:auto;}
+.dyn-key .btn{white-space:nowrap;flex:0 0 auto;}
+.imp-head-acts{display:flex;gap:.5rem;flex-shrink:0;}
+.imp-head-acts .btn{white-space:nowrap;}
+/* Import → Compare: two tables side by side (Import | Current). Header and buttons stay put, ONE middle scrolls;
+   .modal-card's own overflow is off, otherwise a scroll inside a scroll hides the buttons. */
+.modal-card.imp-cmp{width:min(1500px,94vw);max-width:min(1500px,94vw);height:90vh;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;padding:1.1rem 1.3rem;}
+.imp-cmp .modal-title{margin:0 0 .3rem;}
+.imp-cmp-head{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;font-size:13px;margin-bottom:.6rem;}
+.imp-cmp-body{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--border);border-radius:8px;}
+.imp-cmp-body table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px;}
+.imp-cmp-body th,.imp-cmp-body td{padding:.3rem .55rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--border);overflow-wrap:anywhere;}
+.imp-cmp-body thead th{position:sticky;top:0;z-index:1;background:var(--card);font-weight:600;}
+.imp-cmp-body .imp-cmp-r{border-left:2px solid var(--border-2);}
+.imp-cmp-body tr.imp-cmp-diff td{background:color-mix(in srgb,var(--warn) 9%,transparent);}
+.imp-cmp-foot{display:flex;align-items:center;justify-content:flex-end;gap:.5rem;padding-top:.8rem;flex-wrap:wrap;}
+.imp-cmp-confirm{padding-top:.7rem;}
+.imp-cmp-confirm .field-input{max-width:24rem;}
+.imp-cmp-body .imp-cmp-cb,.imp-cmp-body .imp-cmp-mid,.imp-cmp-body .imp-cmp-x{text-align:center;padding-left:.2rem;padding-right:.2rem;}
+.imp-cmp-body .imp-cmp-mid .btn,.imp-cmp-body .imp-cmp-x .btn{padding:0 .5rem;font-size:16px;line-height:1.5;}
+.imp-cmp-body tr.imp-cmp-staged td{background:color-mix(in srgb,var(--ok) 10%,transparent);}
+.imp-cmp-body .imp-cmp-new{color:var(--ok);font-weight:600;}
+.imp-cmp-copybar{display:flex;align-items:center;gap:.6rem;margin-right:auto;}
+.imp-cmp-head .imp-cmp-q{width:16rem;padding:.3rem .6rem;font-size:13px;}
+html.is-busy, html.is-busy *{cursor:progress !important;}
+.dlg-layer{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9995;}
+#az-dyn-own{margin-top:.6rem;}
+.zform-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:2rem;}
+.zform-split > .zform-side{border-left:1px solid var(--border);padding-left:2rem;}
+@media(max-width:1100px){.zform-split{grid-template-columns:1fr;gap:1rem;}.zform-split > .zform-side{border-left:0;padding-left:0;border-top:1px solid var(--border);padding-top:1rem;}}
+
+/* Documentation page */
+.docs{display:grid;grid-template-columns:13rem minmax(0,52rem);gap:1.5rem;align-items:start;}
+.docs-toc{position:sticky;top:1rem;display:flex;flex-direction:column;gap:.15rem;}
+.docs-toc a{color:var(--text-dim);text-decoration:none;padding:.3rem .6rem;border-radius:var(--radius-sm);font-size:13px;}
+.docs-toc a:hover{color:var(--text);background:var(--panel);}
+.docs-body{display:flex;flex-direction:column;gap:1rem;}
+.docs-body section{scroll-margin-top:1rem;line-height:1.55;}
+.docs-body h2{font-size:15px;font-weight:600;margin:0 0 .5rem;}
+.docs-body p,.docs-body ul,.docs-body ol{margin:.4rem 0;}
+.docs-body ul,.docs-body ol{padding-left:1.3rem;}
+.docs-body code{font-family:var(--mono,monospace);font-size:.85em;background:var(--code-bg,rgba(127,127,127,.15));padding:0 .25rem;border-radius:3px;}
+.docs-code{position:relative;margin:.5rem 0;}
+.docs-code pre{background:var(--code-bg,rgba(0,0,0,.22));border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .7rem;margin:0;font-family:var(--mono,monospace);font-size:.8rem;line-height:1.45;overflow-x:auto;}
+.docs-code [data-doc-copy]{position:absolute;top:.4rem;right:.4rem;}
+.docs-routes{border-collapse:collapse;margin:.5rem 0;font-size:13px;}
+.docs-routes td{padding:.25rem .8rem .25rem 0;border-bottom:1px solid var(--border);vertical-align:top;}
+.docs-routes td:first-child{font-family:var(--mono,monospace);color:var(--text-dim);white-space:nowrap;}
+.docs-routes td:nth-child(2){font-family:var(--mono,monospace);white-space:nowrap;}
+@media (max-width:900px){.docs{grid-template-columns:minmax(0,1fr);}.docs-toc{position:static;flex-direction:row;flex-wrap:wrap;}}
+
+/* Settings → External access */
+.ext-stack{display:flex;flex-direction:column;gap:1rem;}
+.ext-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;font-weight:600;}
+.ext-token{font-size:12px;}
+
+/* Audit log: date range and pager */
+.audit-date-form{display:grid;gap:.5rem;padding:.15rem;}
+.audit-date-form label{display:grid;gap:.2rem;font-size:12px;color:var(--text-dim);}
+.audit-date .ui-select-menu{max-height:none;overflow:visible;}
+.audit-date-form .field-input{margin:0;padding-top:.4rem;padding-bottom:.4rem;padding-left:.45rem;font-size:13px;}
+.audit-date-acts{display:flex;justify-content:space-between;margin-top:.2rem;}
+.audit-pager{display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;gap:1rem;}
+.audit-pager-nav{display:inline-flex;align-items:center;gap:.4rem;}
+
+/* Date field (DNSPanel.dateFieldHtml): text in the person's format + the native calendar behind a button */
+.date-field{position:relative;display:flex;align-items:center;}
+.date-field .field-input{width:100%;box-sizing:border-box;padding-right:2rem;}
+.date-field .field-input.is-invalid{border-color:var(--danger);}
+.date-pick{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--text-dim);cursor:pointer;padding:.2rem;display:flex;}
+.date-pick:hover{color:var(--text);}
+.date-native{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0;}
+
+/* Propagation → Servers: the groups table above the servers */
+.grp-table tr.grp-row{cursor:pointer;}
+.grp-table td{vertical-align:top;}
+.srv-head{margin-top:1.4rem;}
+
+/* Zones: title, search and filters in one head that stays on top while the page scrolls; the table header
+   stays right under it (its offset is the head's height, --zones-head-h, set by zones.js). */
+.zones-head{position:sticky;top:-22px;z-index:20;background:var(--bg);margin:-22px 0 0;padding:22px 0 12px;justify-content:flex-start;}
+.zones-head .toolbar{margin:0 0 0 2.5rem;flex:1 1 auto;}
+.zones-head > .flex{margin-left:auto;}
+/* clip, not hidden: the corners stay rounded and the sticky header still sticks to the page scroll */
+.zones-wrap{overflow:clip;}
+.zones-table thead th{position:sticky;top:calc(var(--zones-head-h,64px) - 22px);z-index:10;background:var(--card);}

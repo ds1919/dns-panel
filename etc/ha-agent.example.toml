@@ -1,0 +1,20 @@
+# Local config of the privileged HA agent. No secrets here, only paths to root-owned files; the secrets
+# are created during pairing and pair creation, never by hand (docs/INSTALL/02-ha-pair.md §2).
+
+[mysql]
+socket = "/run/mysqld/mysqld.sock"
+user   = "root"
+
+[replication]
+user             = "repl"
+secret_file      = "/opt/dns-panel/etc/secrets/repl.secret"
+port             = 3306
+dump_user        = "ha_monitor"
+dump_secret_file = "/opt/dns-panel/etc/secrets/ha_monitor.secret"
+databases        = ["dns_panel", "pdns"]
+
+[pdns]
+role_conf = "/etc/powerdns/pdns.d/90-ha-role.conf"
+
+[publication]
+# Empty: the pair's service address lives in the replicated configuration and arrives with the publish command.

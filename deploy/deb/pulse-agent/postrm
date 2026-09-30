@@ -1,0 +1,7 @@
+#!/bin/sh
+# The config and the agent's key (/var/lib/pulse-agent) stay: reinstalling keeps its approval in the panel.
+set -e
+case "$1" in
+    remove|purge) rm -f /etc/systemd/system/pulse-agent.service; systemctl daemon-reload 2>/dev/null || true ;;
+esac
+exit 0

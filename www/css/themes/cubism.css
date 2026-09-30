@@ -1,0 +1,28 @@
+/* Cubism — after the "blue period" and the cubist palette: grey-blue paper, ochre, terracotta and planes cut
+   by straight lines in the background. A panel theme can only hint at it with colour and geometry; no drawn
+   elements without files. */
+:root{
+  --bg:        #dfe3e8;
+  --bg-2:      #eef1f4;
+  --panel:     #eef1f4;
+  --card:      #f4f6f8;
+  --card-2:    #e2e7ec;
+  --border:    #cbd3db;
+  --border-2:  #a9b5c0;
+  --text:      #22303c;
+  --text-dim:  #4c5c6b;
+  --text-mute: #7e8c99;
+  --accent:    #2f6b8f;
+  --accent-dim:#9dbdd2;
+  --accent-fg: #f4f6f8;
+  --ok:        #4a7c4e;
+  --warn:      #b07a1e;
+  --danger:    #b04a32;
+  --tone-info: #275f96;
+  --tone-alt:  #6b4a86;
+  --tone-rev:  #9a5a24;
+  --tone-soft: 9%;
+  --tone-edge: 30%;
+  --tag-ink:   38%;
+  --bg-pattern: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='520'><g fill='%23000' fill-opacity='0.030'><polygon points='90,0 300,0 260,150 150,180' /><polygon points='0,330 140,250 130,520 0,460' /><polygon points='350,300 430,340 500,520 300,520' /></g><g fill='none' stroke='%23000' stroke-width='1.2' stroke-opacity='0.075'><polyline points='0,120 180,40 380,150 560,60' /><polyline points='0,330 140,250 300,340 470,270 560,320' /><polyline points='90,0 150,180 70,330 130,520' /><polyline points='300,0 260,150 350,300 300,520' /><polyline points='470,0 520,190 430,340 500,520' /><polyline points='0,460 200,420 380,480 560,430' /></g></svg>");
+}

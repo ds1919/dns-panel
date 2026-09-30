@@ -1,0 +1,11 @@
+Package: dns-panel-pulse-agent
+Version: @VERSION@
+Architecture: amd64
+Maintainer: Sergey Denisov <4402989@gmail.com>
+Section: net
+Priority: optional
+Homepage: https://github.com/ds1919/dns-panel
+Description: DNS Panel NS Pulse tester (pulse-agent)
+ Runs ICMP/TCP checks from a site for the DNS Panel NS Pulse and reports them to the panel's pulse-server.
+ Put the file from the panel (NS Pulse -> Agent config) into /opt/dns-panel/etc/pulse-agent.toml, start the
+ agent and approve its request in the panel (NS Pulse -> Waiting for approval).

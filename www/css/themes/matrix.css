@@ -1,0 +1,29 @@
+/* Matrix — a phosphor terminal: black background, green phosphor, monospace font and faint scan lines.
+   Like every theme, variables only; font and pattern are variables too (--font-ui, --bg-pattern), no external
+   files. The green is muted: pure #00ff41 over a lot of text hurts the eyes, and the panel is a work tool. */
+:root{
+  --bg:        #000000;
+  --bg-2:      #050a06;
+  --panel:     #071009;
+  --card:      #071009;
+  --card-2:    #0b1a0e;
+  --border:    #123d1d;
+  --border-2:  #1c5c2c;
+  --text:      #4cf07a;
+  --text-dim:  #2fae56;
+  --text-mute: #1d7a3c;
+  --accent:    #39ff6a;
+  --accent-dim:#12662c;
+  --accent-fg: #001005;
+  --ok:        #39ff6a;
+  --warn:      #b6f34a;
+  --danger:    #ff5f5f;
+  --tone-info: #35e0c0;
+  --tone-alt:  #8ef06a;
+  --tone-rev:  #c8f04a;
+  --font-ui:   ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  /* Scan lines: 3 px dark stripe every 3 px. A thin layer that doesn't hurt readability. */
+  --bg-pattern: repeating-linear-gradient(180deg,
+                  rgba(0,255,65,.035) 0px, rgba(0,255,65,.035) 1px,
+                  transparent 1px, transparent 3px);
+}

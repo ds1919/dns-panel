@@ -1,0 +1,25 @@
+/* Catppuccin Latte — light. Tag hues use the darker shades: on a light background they fade otherwise. */
+:root{
+  --bg:        #eff1f5;
+  --bg-2:      #ffffff;
+  --panel:     #ffffff;
+  --card:      #ffffff;
+  --card-2:    #e6e9ef;
+  --border:    #dce0e8;
+  --border-2:  #bcc0cc;
+  --text:      #4c4f69;
+  --text-dim:  #5c5f77;
+  --text-mute: #8c8fa1;
+  --accent:    #179299;
+  --accent-dim:#7cc3c7;
+  --accent-fg: #ffffff;
+  --ok:        #40a02b;
+  --warn:      #df8e1d;
+  --danger:    #d20f39;
+  --tone-info: #1e66f5;
+  --tone-alt:  #8839ef;
+  --tone-rev:  #b4661e;
+  --tone-soft: 9%;
+  --tone-edge: 30%;
+  --tag-ink:   38%;
+}

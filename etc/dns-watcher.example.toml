@@ -1,0 +1,122 @@
+# dns-watcher — Anycast pair readiness probe → action (docs/INSTALL/reference/07-dns-watcher.md).
+# Installed NOT on the pair nodes but on the host clients reach the service address through (or the client itself).
+#
+# The watcher reduces the two nodes' probes to one state and runs that state's rule when the state CHANGES:
+#   node1_up   — only node1 ready            both_down — neither ready
+#   node2_up   — only node2 ready            both_up   — open on both: split-brain
+#   stop       — (optional) when the watcher stops
+# Rule commands run via /bin/sh -c in order; the first failure stops the rule, which is retried on the next
+# round. Commands run as root: the file is owned by root and not writable by others (0600).
+#
+# Values available to commands:
+#   from this file — $ADDRESS  $WATCHER_NODE  $NODE1  $NODE1_PORT  $NODE2  $NODE2_PORT  and all of [variables]
+#   per state      — $STATE  $ACTIVE_NODE  $ACTIVE_PORT   (the ready node; empty for both_* and stop)
+# Commands add masks, ports etc. themselves: "$ADDRESS/32", "$ACTIVE_NODE:53".
+
+address      = "10.0.0.53"       # the pair's service address (High availability → Anycast); required
+# watcher_node = "10.0.0.250"  # address of THIS host where traffic is caught (NAT options need it)
+
+node1      = "10.0.0.11"       # pair nodes and their readiness probe port (as in the pair configuration)
+node1_port = 17900
+node2      = "10.0.0.12"
+node2_port = 17900
+
+interval        = "1s"    # probe check frequency (IP SLA "frequency")
+rise            = 2       # this many consecutive successes: node ready
+fall            = 2       # this many consecutive failures: not ready
+command_timeout = "10s"   # a hung command is killed (with its processes); the rule is retried
+
+[variables]
+# custom values for commands (the names above — ADDRESS, NODE1, ACTIVE_NODE… — are reserved), e.g.:
+# DEVICE = "eth0"
+
+[conditions]
+node1_up  = "ACTIVE"
+node2_up  = "ACTIVE"
+both_down = "WITHDRAW"
+both_up   = "SPLIT"
+stop      = "WITHDRAW"
+
+# ─── Option 1: /32 route via ACTIVE (like Cisco IP SLA + track + static route) ─────────────────────────────
+# This host is the clients' router (or the client itself, e.g. a dev laptop).
+
+[ACTIVE]
+commands = [
+  "ip route replace $ADDRESS/32 via $ACTIVE_NODE",
+  "logger -t dns-watcher \"$ADDRESS -> $ACTIVE_NODE\"",
+]
+
+[WITHDRAW]
+commands = [
+  "ip route del $ADDRESS/32 2>/dev/null || true",
+]
+
+[SPLIT]
+commands = [
+  "ip route del $ADDRESS/32 2>/dev/null || true",
+  "logger -p daemon.err -t dns-watcher \"SPLIT-BRAIN: readiness probe open on $NODE1 and $NODE2\"",
+]
+
+# ─── Option 2: NAT via nftables ────────────────────────────────────────────────────────────────────────────
+# No routing available: clients go to $WATCHER_NODE (this host), DNS 53/udp+tcp and panel port 80 are DNATed
+# to ACTIVE. The node sees this host as the client (masquerade), so don't allow zone transfers from that
+# address. Needs nftables and conntrack. Set watcher_node and comment out option 1's rules.
+#
+# [ACTIVE]
+# commands = [
+#   "sysctl -qw net.ipv4.ip_forward=1",
+#   # one nft transaction: table and chains are declared (kept if present), old rules go and new ones
+#   # come in with no gap
+#   "nft \"table ip dns_watcher { chain pre { type nat hook prerouting priority dstnat; }; chain out { type nat hook output priority -100; }; chain post { type nat hook postrouting priority srcnat; }; }; flush table ip dns_watcher; add rule ip dns_watcher pre ip daddr $WATCHER_NODE udp dport 53 dnat to $ACTIVE_NODE; add rule ip dns_watcher pre ip daddr $WATCHER_NODE tcp dport { 53, 80 } dnat to $ACTIVE_NODE; add rule ip dns_watcher out ip daddr $WATCHER_NODE udp dport 53 dnat to $ACTIVE_NODE; add rule ip dns_watcher out ip daddr $WATCHER_NODE tcp dport { 53, 80 } dnat to $ACTIVE_NODE; add rule ip dns_watcher post ct status dnat masquerade\"",
+#   "conntrack -D -d $WATCHER_NODE >/dev/null 2>&1 || true",   # move already open flows to the new node
+# ]
+#
+# [WITHDRAW]
+# commands = [
+#   "nft delete table ip dns_watcher 2>/dev/null || true",
+#   "conntrack -D -d $WATCHER_NODE >/dev/null 2>&1 || true",
+# ]
+#
+# [SPLIT]
+# commands = [
+#   "nft delete table ip dns_watcher 2>/dev/null || true",
+#   "logger -p daemon.err -t dns-watcher \"SPLIT-BRAIN: readiness probe open on $NODE1 and $NODE2\"",
+# ]
+
+# ─── Option 3: NAT via iptables ────────────────────────────────────────────────────────────────────────────
+# Same as option 2 for iptables hosts. Uses its own DNS_WATCHER chain; other rules are left alone.
+#
+# [ACTIVE]
+# commands = [
+#   "sysctl -qw net.ipv4.ip_forward=1",
+#   "iptables -t nat -N DNS_WATCHER 2>/dev/null || true",
+#   "iptables -t nat -F DNS_WATCHER",
+#   "iptables -t nat -A DNS_WATCHER -d $WATCHER_NODE -p udp --dport 53 -j DNAT --to-destination $ACTIVE_NODE",
+#   "iptables -t nat -A DNS_WATCHER -d $WATCHER_NODE -p tcp -m multiport --dports 53,80 -j DNAT --to-destination $ACTIVE_NODE",
+#   "iptables -t nat -C PREROUTING -j DNS_WATCHER 2>/dev/null || iptables -t nat -A PREROUTING -j DNS_WATCHER",
+#   "iptables -t nat -C OUTPUT -j DNS_WATCHER 2>/dev/null || iptables -t nat -A OUTPUT -j DNS_WATCHER",
+#   "iptables -t nat -C POSTROUTING -m conntrack --ctstate DNAT -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -m conntrack --ctstate DNAT -j MASQUERADE",
+#   "conntrack -D -d $WATCHER_NODE >/dev/null 2>&1 || true",
+# ]
+#
+# [WITHDRAW]
+# commands = [
+#   "iptables -t nat -F DNS_WATCHER 2>/dev/null || true",
+#   "conntrack -D -d $WATCHER_NODE >/dev/null 2>&1 || true",
+# ]
+#
+# [SPLIT]
+# commands = [
+#   "iptables -t nat -F DNS_WATCHER 2>/dev/null || true",
+#   "logger -p daemon.err -t dns-watcher \"SPLIT-BRAIN: readiness probe open on $NODE1 and $NODE2\"",
+# ]
+
+# ─── Option 4: BGP via BIRD ────────────────────────────────────────────────────────────────────────────────
+# BIRD holds the $ADDRESS/32 announcement (static protocol anycast_dns); the watcher only enables/disables it.
+# On the DC1 router node1 is local and node2 remote: announce only while the local node is ready. [conditions]:
+#   node1_up = "ANNOUNCE"   node2_up = "WITHDRAW"   both_down = "WITHDRAW"   both_up = "WITHDRAW"   stop = "WITHDRAW"
+#
+# [ANNOUNCE]
+# commands = [ "birdc enable anycast_dns" ]
+# [WITHDRAW]
+# commands = [ "birdc disable anycast_dns" ]

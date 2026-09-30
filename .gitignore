@@ -1,0 +1,33 @@
+# Node-local config and secrets. Only *.example.* is tracked; the installer creates working files from the
+# templates once, and tree updates (www/bin/src/docs) never touch them, so a sync can't push a dev config to a live node.
+/etc/panel.toml
+/etc/dns-agent.toml
+/etc/pulse-server.toml
+/etc/pulse-agent.toml
+/etc/ha.toml
+/etc/ha-agent.toml
+/etc/dns-watcher.toml
+/etc/powerdns/
+/etc/secrets/
+# server_id is unique per node; the working cnf is generated from the template at install time
+/etc/mariadb/dns-panel.cnf
+
+# Build artifacts and runtime state: the repo tree mirrors the installed one, but these stay out of git.
+/bin/
+/src/dns-ha/build/
+/var/*
+!/var/.gitkeep
+
+# Temporary / generated
+*.bak
+mockup/*.png
+
+# Third-party dumps brought in for manual analysis: they contain the other side's keys and addresses.
+/tmp/
+
+# local tool settings
+/.claude/
+/dist/
+/etc/tls/
+/etc/apache/dns-panel-tls.conf
+/etc/apache/dns-panel-tls-redirect.conf

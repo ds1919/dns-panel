@@ -1,0 +1,30 @@
+/* Blueprint — a drawing: blue tracing paper, white ink, millimetre grid. The grid is drawn with gradients,
+   no external files: an 80 px major and 16 px minor cell, both faint so tables stay readable.
+   Font: a narrow system face, like a drawing title block. */
+:root{
+  --bg:        #0d2b4b;
+  --bg-2:      #0a2340;
+  --panel:     #10365c;
+  --card:      #10365c;
+  --card-2:    #164172;
+  --border:    #1d4d80;
+  --border-2:  #2b6ba8;
+  --text:      #e8f2ff;
+  --text-dim:  #a8c8e8;
+  --text-mute: #6f9dc4;
+  --accent:    #7fd4ff;
+  --accent-dim:#2b6ba8;
+  --accent-fg: #06203a;
+  --ok:        #8ce0b0;
+  --warn:      #ffd479;
+  --danger:    #ff8a8a;
+  --tone-info: #9ec5ff;
+  --tone-alt:  #d1b3ff;
+  --tone-rev:  #ffc98a;
+  --font-ui:   "DejaVu Sans Condensed","Liberation Sans Narrow",Roboto Condensed,system-ui,sans-serif;
+  --bg-pattern:
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.055) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.022) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 16px);
+}

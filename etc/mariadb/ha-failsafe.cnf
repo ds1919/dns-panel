@@ -1,0 +1,12 @@
+# Fail-safe HA role. Installed by pair creation, not by the single-node installer.
+#
+# A reboot alone must never make the node writable or start replication threads. The HA loop assigns the
+# role after start once proven; otherwise a former ACTIVE coming back from reboot would accept writes
+# alongside the new ACTIVE.
+#
+# Symlink: /etc/mysql/mariadb.conf.d/61-dns-panel-ha.cnf → /opt/dns-panel/etc/mariadb/ha-failsafe.cnf
+# Removed when the pair is dissolved. No MariaDB restart needed: the agent sets the current read_only value.
+
+[mysqld]
+read_only        = ON
+skip_slave_start = ON

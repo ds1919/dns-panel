@@ -1,0 +1,29 @@
+/* Light theme. Defines ONLY variables; everything else comes from main.css.
+   Roles: bg — app background, card — cards and tables, border — thin borders,
+   accent — accent and active states, accent-fg — text ON the accent. */
+:root{
+  --bg:        #f6f7f8;
+  --bg-2:      #ffffff;
+  --panel:     #ffffff;
+  --card:      #ffffff;
+  --card-2:    #eef0f2;
+  --border:    #dcdfe3;
+  --border-2:  #c4c9cf;
+  --text:      #1b1d20;
+  --text-dim:  #5a6068;
+  --text-mute: #8b9098;
+  --accent:    #2f8377;
+  --accent-dim:#7fc0b6;
+  --accent-fg: #ffffff;
+  --ok:        #2f8f52;
+  --warn:      #9a6a12;
+  --danger:    #c02c2c;
+  /* Tag hues: on white, coloured text must be DARKER or the tag fades. The fill is softer instead,
+     so border and background don't compete with the text. */
+  --tone-info: #2f5bb7;
+  --tone-alt:  #6b3fa0;
+  --tone-rev:  #8a5a20;
+  --tone-soft: 8%;
+  --tone-edge: 30%;
+  --tag-ink:   38%;   /* less of the tag's own colour in text on a light background, or the tag fades */
+}

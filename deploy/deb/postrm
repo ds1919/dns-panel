@@ -1,0 +1,14 @@
+#!/bin/sh
+# Removal unhooks what pointed into the package; configuration, secrets and databases stay (they are the data).
+set -e
+case "$1" in
+    remove|purge)
+        rm -f /etc/systemd/system/dns-agent.service /etc/systemd/system/dns-sync-worker.service \
+              /etc/systemd/system/dns-ha-agent.service /etc/systemd/system/dns-ha-manager.service \
+              /etc/systemd/system/pulse-server.service /etc/tmpfiles.d/dns-panel.conf
+        systemctl daemon-reload 2>/dev/null || true
+        a2dissite -q dns-panel dns-panel-tls >/dev/null 2>&1 || true
+        rm -f /etc/apache2/sites-available/dns-panel.conf /etc/apache2/sites-available/dns-panel-tls.conf /var/www/vhost/dns-panel
+        systemctl reload apache2 2>/dev/null || true ;;
+esac
+exit 0

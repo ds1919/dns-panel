@@ -1,0 +1,10 @@
+# dns-agent — the panel's privileged intermediary to PowerDNS. Config of THIS process on THIS node.
+# Copy to etc/dns-agent.toml.
+
+socket          = "/run/dns-panel/pdns/dns-agent.sock"
+socket_group    = "www-data"    # the socket's group (the panel runs as www-data); it comes from the setgid directory
+timeout         = 5             # seconds for one request, including its turn at pdns_control
+max_concurrent  = 16            # requests served at once; the rest wait in the socket backlog
+pdns_control    = "/usr/bin/pdns_control"
+dig             = "/usr/bin/dig"
+verify_resolver = "127.0.0.1"

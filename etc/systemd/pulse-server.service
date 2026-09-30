@@ -1,0 +1,37 @@
+[Unit]
+# pulse-server (Go) — accepts Pulse agents and holds check state (docs/25-ns-pulse.md).
+Description=DNS Panel Pulse server
+Documentation=file:/opt/dns-panel/docs/25-ns-pulse.md
+After=network-online.target mariadb.service
+
+[Service]
+Type=simple
+# NOT root and NOT www-data: a network daemon must not get group-read on the panel's secrets.
+User=dns-pulse
+Group=dns-pulse
+# pulse-apply.pl performs the record switch and runs as THIS user, so it needs read access to panel.toml and
+# both databases' secrets. A deliberate trade-off: a daemon tasked with moving DNS must have the means to.
+# To avoid it, run apply as a separate unit under the panel user and set it in [apply] command; the socket
+# and the decision stay here.
+#
+# www-data is the PANEL group (docs/INSTALL/01-standalone.md): it owns panel.toml and the secret files and is
+# needed for the panel to reach the control socket. The daemon sets the socket/directory group itself
+# ([control] group).
+SupplementaryGroups=www-data
+# The socket directory is created by tmpfiles.d with the panel's other sockets (etc/tmpfiles/dns-panel.conf).
+# RuntimeDirectory= won't do: systemd would own it by this unit's user and the panel couldn't enter it.
+ExecStart=/opt/dns-panel/bin/pulse-server -config /opt/dns-panel/etc/pulse-server.toml
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# The only writable place: its control socket. Config and secrets are read, never modified.
+ReadWritePaths=/run/dns-panel/pulse
+ProtectHome=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

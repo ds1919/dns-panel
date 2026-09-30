@@ -1,0 +1,27 @@
+/* Synthwave — neon night: purple dark, pink and cyan neon, a receding horizon grid.
+   Grid and glow are gradients right in the variable value, no external files. */
+:root{
+  --bg:        #150e28;
+  --bg-2:      #1b1136;
+  --panel:     #221543;
+  --card:      #221543;
+  --card-2:    #2c1b56;
+  --border:    #3a2470;
+  --border-2:  #533397;
+  --text:      #f2e9ff;
+  --text-dim:  #c0a8e8;
+  --text-mute: #8a74b8;
+  --accent:    #ff5fd2;
+  --accent-dim:#7a2f68;
+  --accent-fg: #17092a;
+  --ok:        #4ef0c8;
+  --warn:      #ffcf5c;
+  --danger:    #ff5c7a;
+  --tone-info: #63e0ff;
+  --tone-alt:  #c07dff;
+  --tone-rev:  #ffa057;
+  --bg-pattern:
+    radial-gradient(120% 60% at 50% 100%, rgba(255,95,210,.13) 0%, transparent 60%),
+    repeating-linear-gradient(90deg, rgba(99,224,255,.05) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(0deg,  rgba(255,95,210,.05) 0 1px, transparent 1px 64px);
+}
